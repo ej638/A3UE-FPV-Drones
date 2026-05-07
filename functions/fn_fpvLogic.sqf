@@ -115,11 +115,21 @@ systemChat format ["Initialized drone: %1", _uavInstance];
 
 //"LandVehicle", "Car", "Tank"
 private _nearestEnemy = objNull;
+private _noTargetHintShown = false;
 while {isNull _nearestEnemy && (!isNull _uavInstance)} do {
 	if ([_uavInstance] call is_dead) then {
 		break;
 	};
 	_nearestEnemy = [_uavInstance, _unitKinds, _targetSource, _allowObjectParent, _targetDetectionRange] call findNearestEnemyOfType;
+    if ((isNull _nearestEnemy) && {!_noTargetHintShown}) then {
+        _noTargetHintShown = true;
+        systemChat format [
+            "FPV drone %1 found no valid targets. Check side, Target Source (%2), Unit Types (%3), and whether the enemy is on foot or in a vehicle.",
+            _uavInstance,
+            _targetSource,
+            _unitKinds joinString ","
+        ];
+    };
 	sleep (1);
 };
 
