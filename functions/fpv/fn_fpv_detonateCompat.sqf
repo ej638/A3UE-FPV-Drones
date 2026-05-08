@@ -31,13 +31,40 @@ private _impactValid = (_uav getVariable ["A3UE_FPV_lastImpactValid", false]) &&
 		}
 	}
 };
-private _useImpactDelivery = _impactValid && {_detonationReason in ["DIRECT_CONTACT", "PREDICTED_IMPACT"]};
+private _directHitModes = ["DIRECT_BODY", "DIRECT_HULL", "DIRECT_STATIC"];
+private _surfaceFallbackModes = ["GROUND_NEAR_TARGET", "OBSTRUCTION_SURFACE"];
+private _impactMode = _uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"];
+private _useImpactDelivery = _impactValid && {
+	(((_impactMode in _directHitModes) && {_detonationReason in ["DIRECT_CONTACT", "PREDICTED_IMPACT", "CLOSURE_QUALIFIED"]}) ||
+	{(_impactMode == "GROUND_NEAR_TARGET") && {_detonationReason == "CLOSURE_QUALIFIED"}} ||
+	{(_impactMode == "OBSTRUCTION_SURFACE") && {_detonationReason == "OBSTRUCTION_FALLBACK"}})
+};
 private _deliveryPosAsl = +_uavPosAsl;
 private _deliveryDir = vectorDir _uav;
 private _deliveryUp = vectorUp _uav;
 private _deliveryMode = if (_useImpactDelivery) then {"IMPACT_POINT"} else {"UAV_POSITION"};
-private _impactMode = _uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"];
 private _impactSurfaceType = _uav getVariable ["A3UE_FPV_lastImpactSurfaceType", "none"];
+private _fallbackSurfaceModes = _surfaceFallbackModes;
+private _strikePathClass = switch (true) do {
+	case (_impactMode in _directHitModes): {"DIRECT_HIT"};
+	case (_impactMode in _fallbackSurfaceModes): {"FALLBACK_SURFACE"};
+	case (_impactMode == "AIR_PROXIMITY"): {"AIR_POLICY"};
+	case (_fallbackReason != "NONE"): {"EMERGENCY_FALLBACK"};
+	default {"UNCLASSIFIED"};
+};
+private _approvalPolicyClass = switch (true) do {
+	case (_detonationReason in ["DIRECT_CONTACT", "PREDICTED_IMPACT"]): {"DIRECT_HIT_PRIMARY"};
+	case (_detonationReason in ["CLOSURE_QUALIFIED", "OBSTRUCTION_FALLBACK"]): {"SURFACE_PRIMARY"};
+	case (_detonationReason in ["MISSED_PASS_FALLBACK", "PROXIMITY_FAILSAFE"]): {"EMERGENCY_FALLBACK"};
+	default {"UNCLASSIFIED"};
+};
+private _policyDeliveryMode = switch (_strikePathClass) do {
+	case "DIRECT_HIT": {"IMPACT_POINT"};
+	case "FALLBACK_SURFACE": {"IMPACT_POINT"};
+	default {"UAV_POSITION"};
+};
+private _deliveryPolicyMatch = _deliveryMode == _policyDeliveryMode;
+private _knownBadPattern = (_impactMode == "GROUND_NEAR_TARGET") && {_detonationReason == "CLOSURE_QUALIFIED"} && {_deliveryMode == "UAV_POSITION"};
 
 if (_useImpactDelivery) then {
 	private _approachVector = _impactPointAsl vectorDiff _uavPosAsl;
@@ -110,6 +137,11 @@ _recentDetonations pushBack createHashMapFromArray [
 	["detonationReason", _detonationReason],
 	["fallbackReason", _fallbackReason],
 	["deliveryMode", _deliveryMode],
+	["strikePathClass", _strikePathClass],
+	["approvalPolicyClass", _approvalPolicyClass],
+	["policyDeliveryMode", _policyDeliveryMode],
+	["deliveryPolicyMatch", _deliveryPolicyMatch],
+	["knownBadPattern", _knownBadPattern],
 	["impactPointASL", _impactPointAsl],
 	["uavPosASL", _uavPosAsl],
 	["deliveryPosASL", _deliveryPosAsl],

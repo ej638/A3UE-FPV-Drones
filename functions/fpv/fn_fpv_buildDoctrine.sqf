@@ -515,7 +515,13 @@ private _familyImpactDefaults = createHashMapFromArray [
 		["detonationMaxAltitudeAGL", 18],
 		["impactProbeDistance", 16],
 		["impactAbortTimeout", 0.45],
-		["terminalImpactHoldoffDistance", 6],
+		["terminalImpactHoldoffDistance", 4.5],
+		["directContactDistanceBody", 0.85],
+		["directContactDistanceHull", 1.25],
+		["predictedImpactMaxTimeToContactBody", 0.07],
+		["predictedImpactMaxTimeToContactHull", 0.11],
+		["directHitClosureQualifiedAllowed", false],
+		["fallbackSurfaceHoldoffDistance", 5.5],
 		["impactSurfaceRefreshDistance", 12],
 		["impactSurfaceRefreshTTL", 0.10]
 	]],
@@ -528,7 +534,13 @@ private _familyImpactDefaults = createHashMapFromArray [
 		["detonationMaxAltitudeAGL", 16],
 		["impactProbeDistance", 14],
 		["impactAbortTimeout", 0.55],
-		["terminalImpactHoldoffDistance", 6],
+		["terminalImpactHoldoffDistance", 5.0],
+		["directContactDistanceBody", 0.95],
+		["directContactDistanceHull", 1.35],
+		["predictedImpactMaxTimeToContactBody", 0.10],
+		["predictedImpactMaxTimeToContactHull", 0.15],
+		["directHitClosureQualifiedAllowed", false],
+		["fallbackSurfaceHoldoffDistance", 6.0],
 		["impactSurfaceRefreshDistance", 11],
 		["impactSurfaceRefreshTTL", 0.12]
 	]],
@@ -541,7 +553,13 @@ private _familyImpactDefaults = createHashMapFromArray [
 		["detonationMaxAltitudeAGL", 14],
 		["impactProbeDistance", 12],
 		["impactAbortTimeout", 0.65],
-		["terminalImpactHoldoffDistance", 6],
+		["terminalImpactHoldoffDistance", 5.5],
+		["directContactDistanceBody", 1.05],
+		["directContactDistanceHull", 1.45],
+		["predictedImpactMaxTimeToContactBody", 0.12],
+		["predictedImpactMaxTimeToContactHull", 0.18],
+		["directHitClosureQualifiedAllowed", false],
+		["fallbackSurfaceHoldoffDistance", 6.5],
 		["impactSurfaceRefreshDistance", 10],
 		["impactSurfaceRefreshTTL", 0.14]
 	]]
@@ -717,6 +735,12 @@ private _buildBehaviorProfile = {
 	private _impactProbeDistance = _profile getOrDefault ["impactProbeDistance", round (_terminalSteeringDistance * 0.20)];
 	private _impactAbortTimeout = _profile getOrDefault ["impactAbortTimeout", 0.50];
 	private _terminalImpactHoldoffDistance = _profile getOrDefault ["terminalImpactHoldoffDistance", (_detonationDistance + 2)];
+	private _directContactDistanceBody = _profile getOrDefault ["directContactDistanceBody", 1.0];
+	private _directContactDistanceHull = _profile getOrDefault ["directContactDistanceHull", 1.4];
+	private _predictedImpactMaxTimeToContactBody = _profile getOrDefault ["predictedImpactMaxTimeToContactBody", (_detonationMaxTimeToContact * 0.45)];
+	private _predictedImpactMaxTimeToContactHull = _profile getOrDefault ["predictedImpactMaxTimeToContactHull", (_detonationMaxTimeToContact * 0.65)];
+	private _directHitClosureQualifiedAllowed = _profile getOrDefault ["directHitClosureQualifiedAllowed", false];
+	private _fallbackSurfaceHoldoffDistance = _profile getOrDefault ["fallbackSurfaceHoldoffDistance", _terminalImpactHoldoffDistance];
 	private _impactSurfaceRefreshDistance = _profile getOrDefault ["impactSurfaceRefreshDistance", 10];
 	private _impactSurfaceRefreshTTL = _profile getOrDefault ["impactSurfaceRefreshTTL", 0.10];
 	private _detonationVehicleHullBias = _profile getOrDefault ["detonationVehicleHullBias", 0.50];
@@ -743,14 +767,38 @@ private _buildBehaviorProfile = {
 	_terminalImpactOffsetNear = (_terminalImpactOffsetNear max 0) min _terminalImpactOffsetFar;
 	_terminalDescentMinRate = _terminalDescentMinRate max 0.1;
 	_terminalDescentEnforceDistance = (_terminalDescentEnforceDistance max 1) min _terminalSteeringDistance;
+	if !(_directContactDistanceBody isEqualType 0) then {
+		_directContactDistanceBody = 1.0;
+	};
+	if !(_directContactDistanceHull isEqualType 0) then {
+		_directContactDistanceHull = 1.4;
+	};
+	if !(_predictedImpactMaxTimeToContactBody isEqualType 0) then {
+		_predictedImpactMaxTimeToContactBody = _detonationMaxTimeToContact * 0.45;
+	};
+	if !(_predictedImpactMaxTimeToContactHull isEqualType 0) then {
+		_predictedImpactMaxTimeToContactHull = _detonationMaxTimeToContact * 0.65;
+	};
+	if !(_directHitClosureQualifiedAllowed isEqualType true) then {
+		_directHitClosureQualifiedAllowed = false;
+	};
+	if !(_fallbackSurfaceHoldoffDistance isEqualType 0) then {
+		_fallbackSurfaceHoldoffDistance = _terminalImpactHoldoffDistance;
+	};
+	_directContactDistanceBody = _directContactDistanceBody max 0.5;
+	_directContactDistanceHull = (_directContactDistanceHull max _directContactDistanceBody) max 0.5;
 	_detonationMaxTimeToContact = (_detonationMaxTimeToContact max 0.05) min 1;
 	_detonationMinClosingDot = (_detonationMinClosingDot max 0) min 1;
+	_predictedImpactMaxTimeToContactBody = (_predictedImpactMaxTimeToContactBody max 0.02) min _detonationMaxTimeToContact;
+	_predictedImpactMaxTimeToContactHull = (_predictedImpactMaxTimeToContactHull max _predictedImpactMaxTimeToContactBody) min _detonationMaxTimeToContact;
 	_detonationMaxAltitudeAGL = _detonationMaxAltitudeAGL max 0;
 	_impactFallbackRadius = _impactFallbackRadius max 0;
 	_impactFallbackGroundOffset = _impactFallbackGroundOffset max 0;
 	_impactProbeDistance = (_impactProbeDistance max 1) min (_terminalSteeringDistance max 1);
 	_impactAbortTimeout = (_impactAbortTimeout max 0.05) min 5;
-	_terminalImpactHoldoffDistance = (_terminalImpactHoldoffDistance max 0) min _terminalSteeringDistance;
+	_terminalImpactHoldoffDistance = (_terminalImpactHoldoffDistance max _directContactDistanceHull) min _terminalSteeringDistance;
+	private _fallbackSurfaceHoldoffMax = ((_detonationDistance + (_impactFallbackRadius max 2) + 2) max _terminalImpactHoldoffDistance);
+	_fallbackSurfaceHoldoffDistance = ((_fallbackSurfaceHoldoffDistance max _terminalImpactHoldoffDistance) min _fallbackSurfaceHoldoffMax);
 	_impactSurfaceRefreshDistance = _impactSurfaceRefreshDistance max 1;
 	_impactSurfaceRefreshTTL = (_impactSurfaceRefreshTTL max 0.01) min 5;
 	_detonationVehicleHullBias = (_detonationVehicleHullBias max 0) min 1;
@@ -784,6 +832,12 @@ private _buildBehaviorProfile = {
 	_profile set ["terminalImpactOffsetNear", _terminalImpactOffsetNear];
 	_profile set ["terminalDescentMinRate", _terminalDescentMinRate];
 	_profile set ["terminalDescentEnforceDistance", _terminalDescentEnforceDistance];
+	_profile set ["directContactDistanceBody", _directContactDistanceBody];
+	_profile set ["directContactDistanceHull", _directContactDistanceHull];
+	_profile set ["predictedImpactMaxTimeToContactBody", _predictedImpactMaxTimeToContactBody];
+	_profile set ["predictedImpactMaxTimeToContactHull", _predictedImpactMaxTimeToContactHull];
+	_profile set ["directHitClosureQualifiedAllowed", _directHitClosureQualifiedAllowed];
+	_profile set ["fallbackSurfaceHoldoffDistance", _fallbackSurfaceHoldoffDistance];
 	_profile set ["detonationMaxTimeToContact", _detonationMaxTimeToContact];
 	_profile set ["detonationMinClosingDot", _detonationMinClosingDot];
 	_profile set ["detonationMaxAltitudeAGL", _detonationMaxAltitudeAGL];

@@ -63,6 +63,22 @@ private _targetMoveDir2D = if (_targetVelocity2DMag > 0.1) then {
 	_incomingDir2D
 };
 
+private _buildDirectBodyCandidates = {
+	params ["_originAsl", "_moveDir2D"];
+
+	private _torsoPointAsl = +_originAsl;
+	_torsoPointAsl set [2, (_torsoPointAsl select 2) + 1.15];
+
+	private _leadTorsoPointAsl = +_torsoPointAsl;
+	_leadTorsoPointAsl set [0, (_leadTorsoPointAsl select 0) + ((_moveDir2D select 0) * 0.20)];
+	_leadTorsoPointAsl set [1, (_leadTorsoPointAsl select 1) + ((_moveDir2D select 1) * 0.20)];
+
+	private _pelvisPointAsl = +_originAsl;
+	_pelvisPointAsl set [2, (_pelvisPointAsl select 2) + 0.85];
+
+	[_torsoPointAsl, _leadTorsoPointAsl, _pelvisPointAsl]
+};
+
 private _makeGroundPoint = {
 	params ["_originAsl", ["_leadDir2D", [0, 0, 0]], ["_leadDistance", 0], ["_heightOffset", 0]];
 
@@ -114,6 +130,40 @@ private _buildSolution = {
 	]
 };
 
+private _resolveDirectBodySolution = {
+	params ["_candidatePointsAsl"];
+
+	{
+		private _candidatePointAsl = +_x;
+		private _candidateHits = [_uavPosAsl, _candidatePointAsl] call _traceSurface;
+
+		if (_candidateHits isNotEqualTo []) then {
+			private _firstHit = _candidateHits select 0;
+			private _hitPointAsl = _firstHit param [0, []];
+			private _hitObject = _firstHit param [2, objNull];
+			private _hitTarget = !isNull _hitObject && {
+				_hitObject == _target || {
+					_hitObject == objectParent _target
+				}
+			};
+
+			if (_hitTarget) exitWith {
+				[true, [true, "DIRECT_BODY", _hitPointAsl, "body", _target, "DIRECT_BODY_HIT"] call _buildSolution]
+			};
+
+			if (_fallbackAllowed && {!isNull _hitObject}) exitWith {
+				[true, [true, "OBSTRUCTION_SURFACE", _hitPointAsl, "obstruction", _hitObject, "OBSTRUCTION_PRIMARY"] call _buildSolution]
+			};
+		} else {
+			if (!_targetObstructed) exitWith {
+				[true, [true, "DIRECT_BODY", _candidatePointAsl, "body", _target, "DIRECT_BODY_CLEAR_PATH"] call _buildSolution]
+			};
+		};
+	} forEach _candidatePointsAsl;
+
+	[false, createHashMap]
+};
+
 private _isAirTarget = _target isKindOf "Air";
 private _isManTarget = _target isKindOf "Man";
 private _isStaticTarget = _target isKindOf "StaticWeapon";
@@ -147,6 +197,15 @@ switch (_desiredMode) do {
 
 	default {
 		_primaryPointAsl set [2, (_primaryPointAsl select 2) + 1.0];
+	};
+};
+
+if (_desiredMode == "DIRECT_BODY") then {
+	private _directBodyCandidatesAsl = [_targetPosAsl, _targetMoveDir2D] call _buildDirectBodyCandidates;
+	private _directBodyResolution = [_directBodyCandidatesAsl] call _resolveDirectBodySolution;
+
+	if (_directBodyResolution param [0, false]) exitWith {
+		_directBodyResolution param [1, createHashMap]
 	};
 };
 

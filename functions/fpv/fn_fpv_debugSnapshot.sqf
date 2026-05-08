@@ -5,6 +5,71 @@ private _catalog = missionNamespace getVariable ["A3UE_FPV_catalog", createHashM
 private _recentDetonations = missionNamespace getVariable ["A3UE_FPV_recentDetonations", []];
 private _loadedFamilies = [];
 private _catalogFamilies = [];
+private _directHitModes = ["DIRECT_BODY", "DIRECT_HULL", "DIRECT_STATIC"];
+private _fallbackSurfaceModes = ["GROUND_NEAR_TARGET", "OBSTRUCTION_SURFACE"];
+private _directHitPrimaryReasons = ["DIRECT_CONTACT", "PREDICTED_IMPACT"];
+private _fallbackSurfacePrimaryReasons = ["CLOSURE_QUALIFIED", "OBSTRUCTION_FALLBACK"];
+private _emergencyFallbackReasons = ["MISSED_PASS_FALLBACK", "PROXIMITY_FAILSAFE"];
+private _holdoffContractKey = "terminalImpactHoldoffDistance";
+private _holdoffContractStatus = "ENFORCED_MODE_AWARE";
+
+private _normalizeRecentDetonation = {
+	params [["_record", createHashMap]];
+
+	private _impactMode = _record getOrDefault ["impactMode", "NONE"];
+	private _detonationReason = _record getOrDefault ["detonationReason", "NONE"];
+	private _fallbackReason = _record getOrDefault ["fallbackReason", "NONE"];
+	private _deliveryMode = _record getOrDefault ["deliveryMode", "UAV_POSITION"];
+	private _strikePathClass = _record getOrDefault ["strikePathClass", switch (true) do {
+		case (_impactMode in _directHitModes): {"DIRECT_HIT"};
+		case (_impactMode in _fallbackSurfaceModes): {"FALLBACK_SURFACE"};
+		case (_impactMode == "AIR_PROXIMITY"): {"AIR_POLICY"};
+		case (_fallbackReason != "NONE"): {"EMERGENCY_FALLBACK"};
+		default {"UNCLASSIFIED"};
+	}];
+	private _approvalPolicyClass = _record getOrDefault ["approvalPolicyClass", switch (true) do {
+		case (_detonationReason in _directHitPrimaryReasons): {"DIRECT_HIT_PRIMARY"};
+		case (_detonationReason in _fallbackSurfacePrimaryReasons): {"SURFACE_PRIMARY"};
+		case (_detonationReason in _emergencyFallbackReasons): {"EMERGENCY_FALLBACK"};
+		default {"UNCLASSIFIED"};
+	}];
+	private _policyDeliveryMode = _record getOrDefault ["policyDeliveryMode", switch (_strikePathClass) do {
+		case "DIRECT_HIT": {"IMPACT_POINT"};
+		case "FALLBACK_SURFACE": {"IMPACT_POINT"};
+		default {"UAV_POSITION"};
+	}];
+	private _deliveryPolicyMatch = _record getOrDefault ["deliveryPolicyMatch", _deliveryMode == _policyDeliveryMode];
+	private _knownBadPattern = _record getOrDefault ["knownBadPattern", (_impactMode == "GROUND_NEAR_TARGET") && {_detonationReason == "CLOSURE_QUALIFIED"} && {_deliveryMode == "UAV_POSITION"}];
+
+	createHashMapFromArray [
+		["at", _record getOrDefault ["at", -1]],
+		["uavNetId", _record getOrDefault ["uavNetId", ""]],
+		["targetNetId", _record getOrDefault ["targetNetId", ""]],
+		["siteMarker", _record getOrDefault ["siteMarker", ""]],
+		["vendorId", _record getOrDefault ["vendorId", ""]],
+		["payloadRole", _record getOrDefault ["payloadRole", ""]],
+		["profileId", _record getOrDefault ["profileId", ""]],
+		["impactMode", _impactMode],
+		["surfaceType", _record getOrDefault ["surfaceType", "none"]],
+		["detonationReason", _detonationReason],
+		["fallbackReason", _fallbackReason],
+		["deliveryMode", _deliveryMode],
+		["strikePathClass", _strikePathClass],
+		["approvalPolicyClass", _approvalPolicyClass],
+		["policyDeliveryMode", _policyDeliveryMode],
+		["deliveryPolicyMatch", _deliveryPolicyMatch],
+		["knownBadPattern", _knownBadPattern],
+		["impactPointASL", _record getOrDefault ["impactPointASL", []]],
+		["uavPosASL", _record getOrDefault ["uavPosASL", []]],
+		["deliveryPosASL", _record getOrDefault ["deliveryPosASL", []]],
+		["controllerOwnerId", _record getOrDefault ["controllerOwnerId", -1]],
+		["linkState", _record getOrDefault ["linkState", ""]]
+	]
+};
+
+private _recentDetonationSnapshot = _recentDetonations apply {
+	[_x] call _normalizeRecentDetonation
+};
 
 {
 	if (_y) then {
@@ -66,6 +131,12 @@ private _managedDrones = (allUnitsUAV select { _x getVariable ["A3UE_FPV_managed
 		["terminalImpactOffsetNear", _profile getOrDefault ["terminalImpactOffsetNear", -1]],
 		["terminalDescentMinRate", _profile getOrDefault ["terminalDescentMinRate", -1]],
 		["terminalDescentEnforceDistance", _profile getOrDefault ["terminalDescentEnforceDistance", -1]],
+		["directContactDistanceBody", _profile getOrDefault ["directContactDistanceBody", -1]],
+		["directContactDistanceHull", _profile getOrDefault ["directContactDistanceHull", -1]],
+		["predictedImpactMaxTimeToContactBody", _profile getOrDefault ["predictedImpactMaxTimeToContactBody", -1]],
+		["predictedImpactMaxTimeToContactHull", _profile getOrDefault ["predictedImpactMaxTimeToContactHull", -1]],
+		["directHitClosureQualifiedAllowed", _profile getOrDefault ["directHitClosureQualifiedAllowed", false]],
+		["fallbackSurfaceHoldoffDistance", _profile getOrDefault ["fallbackSurfaceHoldoffDistance", -1]],
 		["detonationMaxTimeToContact", _profile getOrDefault ["detonationMaxTimeToContact", -1]],
 		["detonationMinClosingDot", _profile getOrDefault ["detonationMinClosingDot", -2]],
 		["detonationMaxAltitudeAGL", _profile getOrDefault ["detonationMaxAltitudeAGL", -1]],
@@ -208,6 +279,94 @@ private _terminalVectorActiveVendors = [];
 private _terminalVectorActiveSites = [];
 private _impactActiveVendors = [];
 private _impactActiveSites = [];
+private _holdoffConfiguredImpactNetIds = (_impactActiveDrones select {
+	((_x getOrDefault ["profileSummary", createHashMap]) getOrDefault [_holdoffContractKey, -1]) > 0
+}) apply {
+	_x getOrDefault ["netId", ""]
+};
+
+private _recentDirectHitRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["strikePathClass", ""]) == "DIRECT_HIT"
+};
+private _recentFallbackSurfaceRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["strikePathClass", ""]) == "FALLBACK_SURFACE"
+};
+private _recentAirPolicyRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["strikePathClass", ""]) == "AIR_POLICY"
+};
+private _recentEmergencyFallbackRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["approvalPolicyClass", ""]) == "EMERGENCY_FALLBACK"
+};
+private _recentKnownBadPatternRecords = _recentDetonationSnapshot select {
+	_x getOrDefault ["knownBadPattern", false]
+};
+private _recentDeliveryPolicyMismatchRecords = _recentDetonationSnapshot select {
+	!(_x getOrDefault ["deliveryPolicyMatch", true])
+};
+private _recentDirectBodyRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["impactMode", ""]) == "DIRECT_BODY"
+};
+private _recentDirectBodyPrimaryRecords = _recentDirectBodyRecords select {
+	(_x getOrDefault ["approvalPolicyClass", ""]) == "DIRECT_HIT_PRIMARY"
+};
+private _recentDirectHitImpactDeliveryRecords = _recentDirectHitRecords select {
+	(_x getOrDefault ["deliveryMode", ""]) == "IMPACT_POINT"
+};
+private _recentDirectHitUavDeliveryRecords = _recentDirectHitRecords select {
+	(_x getOrDefault ["deliveryMode", ""]) == "UAV_POSITION"
+};
+private _recentFallbackSurfaceImpactDeliveryRecords = _recentFallbackSurfaceRecords select {
+	(_x getOrDefault ["deliveryMode", ""]) == "IMPACT_POINT"
+};
+private _recentFallbackSurfaceUavDeliveryRecords = _recentFallbackSurfaceRecords select {
+	(_x getOrDefault ["deliveryMode", ""]) == "UAV_POSITION"
+};
+private _recentSurfacePrimaryUavDeliveryRecords = _recentFallbackSurfaceUavDeliveryRecords select {
+	(_x getOrDefault ["approvalPolicyClass", ""]) == "SURFACE_PRIMARY"
+};
+private _recentClosureQualifiedDirectHitRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["strikePathClass", ""]) == "DIRECT_HIT" && {
+		(_x getOrDefault ["detonationReason", ""]) == "CLOSURE_QUALIFIED"
+	}
+};
+private _recentClosureQualifiedFallbackSurfaceRecords = _recentDetonationSnapshot select {
+	(_x getOrDefault ["strikePathClass", ""]) == "FALLBACK_SURFACE" && {
+		(_x getOrDefault ["detonationReason", ""]) == "CLOSURE_QUALIFIED"
+	}
+};
+private _recentKnownBadPatternUavNetIds = _recentKnownBadPatternRecords apply {
+	_x getOrDefault ["uavNetId", ""]
+};
+private _recentDeliveryPolicyMismatchUavNetIds = _recentDeliveryPolicyMismatchRecords apply {
+	_x getOrDefault ["uavNetId", ""]
+};
+private _activeDirectHitNetIds = (_impactActiveDrones select {
+	(_x getOrDefault ["terminalImpactMode", ""]) in _directHitModes
+}) apply {
+	_x getOrDefault ["netId", ""]
+};
+private _activeFallbackSurfaceNetIds = (_impactActiveDrones select {
+	(_x getOrDefault ["terminalImpactMode", ""]) in _fallbackSurfaceModes
+}) apply {
+	_x getOrDefault ["netId", ""]
+};
+private _phase4TuningInvalidNetIds = (_impactActiveDrones select {
+	private _profileSummary = _x getOrDefault ["profileSummary", createHashMap];
+	private _bodyContact = _profileSummary getOrDefault ["directContactDistanceBody", -1];
+	private _hullContact = _profileSummary getOrDefault ["directContactDistanceHull", -1];
+	private _bodyTtc = _profileSummary getOrDefault ["predictedImpactMaxTimeToContactBody", -1];
+	private _hullTtc = _profileSummary getOrDefault ["predictedImpactMaxTimeToContactHull", -1];
+	private _directHoldoff = _profileSummary getOrDefault ["terminalImpactHoldoffDistance", -1];
+	private _fallbackHoldoff = _profileSummary getOrDefault ["fallbackSurfaceHoldoffDistance", -1];
+	(_bodyContact <= 0) ||
+	(_hullContact < _bodyContact) ||
+	(_bodyTtc <= 0) ||
+	(_hullTtc < _bodyTtc) ||
+	(_directHoldoff <= 0) ||
+	(_fallbackHoldoff < _directHoldoff)
+}) apply {
+	_x getOrDefault ["netId", ""]
+};
 
 {
 	private _vendorId = _x getOrDefault ["vendorId", ""];
@@ -380,6 +539,65 @@ if (_impactControllerOwnerMismatches isNotEqualTo []) then {
 	_validationWarnings pushBack format ["impact controller owner mismatches detected during terminal phases: %1", _impactControllerOwnerMismatches];
 };
 
+if (_phase4TuningInvalidNetIds isNotEqualTo []) then {
+	_validationWarnings pushBack format ["phase 4 direct-hit or fallback-surface tuning values are invalid on active impact drones: %1", _phase4TuningInvalidNetIds];
+};
+
+private _recentEvidenceAvailable = (count _recentDetonationSnapshot) > 0;
+private _validationHealthy = _validationWarnings isEqualTo [];
+private _knownBadPatternCleared = (count _recentKnownBadPatternRecords) == 0;
+private _directHitDeliveryHealthy = (count _recentDirectHitUavDeliveryRecords) == 0;
+private _surfaceDeliveryHealthy = (count _recentSurfacePrimaryUavDeliveryRecords) == 0;
+private _directBodyEvidenceAvailable = (count _recentDirectBodyRecords) > 0;
+private _directBodyPrimaryEvidenceAvailable = (count _recentDirectBodyPrimaryRecords) > 0;
+private _readyForLanAcceptanceRuns = _validationHealthy;
+private _acceptanceGateClear = _validationHealthy && {
+	_recentEvidenceAvailable && {
+		_knownBadPatternCleared && {
+			_directHitDeliveryHealthy && {
+				_surfaceDeliveryHealthy && {
+					_directBodyPrimaryEvidenceAvailable
+				}
+			}
+		}
+	}
+};
+private _acceptanceStatus = switch (true) do {
+	case (!_validationHealthy): {"BLOCKED_BY_VALIDATION_WARNINGS"};
+	case (!_recentEvidenceAvailable): {"READY_FOR_LAN_RUNS"};
+	case (_acceptanceGateClear): {"ACCEPTANCE_EVIDENCE_HEALTHY"};
+	default {"NEEDS_TARGETED_LAN_VERIFICATION"};
+};
+private _acceptanceFocusAreas = [];
+
+if (!_validationHealthy) then {
+	_acceptanceFocusAreas pushBack "Resolve validation warnings before trusting LAN acceptance results.";
+};
+
+if (!_recentEvidenceAvailable) then {
+	_acceptanceFocusAreas pushBack "Run at least one local-LAN terminal strike to populate recentDetonations evidence.";
+};
+
+if (!_directBodyEvidenceAvailable) then {
+	_acceptanceFocusAreas pushBack "Run exposed infantry scenarios until recentDetonations records DIRECT_BODY impact modes.";
+};
+
+if (!_directBodyPrimaryEvidenceAvailable) then {
+	_acceptanceFocusAreas pushBack "Run exposed infantry scenarios until DIRECT_BODY strikes detonate through DIRECT_CONTACT or PREDICTED_IMPACT.";
+};
+
+if (!_knownBadPatternCleared) then {
+	_acceptanceFocusAreas pushBack "Recent strikes still match the known bad GROUND_NEAR_TARGET plus CLOSURE_QUALIFIED plus UAV_POSITION signature.";
+};
+
+if (!_directHitDeliveryHealthy) then {
+	_acceptanceFocusAreas pushBack "Recent direct-hit records still include UAV_POSITION delivery.";
+};
+
+if (!_surfaceDeliveryHealthy) then {
+	_acceptanceFocusAreas pushBack "Recent intentional surface-primary strikes still include UAV_POSITION delivery.";
+};
+
 createHashMapFromArray [
 	["environment", createHashMapFromArray [
 		["registrationComplete", missionNamespace getVariable ["A3UE_FPV_registrationComplete", false]],
@@ -388,6 +606,74 @@ createHashMapFromArray [
 		["catalogFamilies", _catalogFamilies],
 		["registryEntryCount", count _registrySnapshot],
 		["managedDroneCount", count _managedDrones]
+	]],
+	["directContactPolicy", createHashMapFromArray [
+		["phase", "PHASE_2_MODE_AWARE_FUSE"],
+		["directHitModes", _directHitModes],
+		["fallbackSurfaceModes", _fallbackSurfaceModes],
+		["directHitPrimaryReasons", _directHitPrimaryReasons],
+		["fallbackSurfacePrimaryReasons", _fallbackSurfacePrimaryReasons],
+		["emergencyFallbackReasons", _emergencyFallbackReasons],
+		["holdoffContractKey", _holdoffContractKey],
+		["holdoffContractStatus", _holdoffContractStatus],
+		["holdoffEnforcedByFuse", true],
+		["supportedTuningKeys", ["directContactDistanceBody", "directContactDistanceHull", "predictedImpactMaxTimeToContactBody", "predictedImpactMaxTimeToContactHull", "directHitClosureQualifiedAllowed", "fallbackSurfaceHoldoffDistance"]],
+		["knownBadPattern", createHashMapFromArray [
+			["impactMode", "GROUND_NEAR_TARGET"],
+			["detonationReason", "CLOSURE_QUALIFIED"],
+			["deliveryMode", "UAV_POSITION"]
+		]]
+	]],
+	["phase1EvidenceSummary", createHashMapFromArray [
+		["recentDetonationCount", count _recentDetonationSnapshot],
+		["recentDirectHitCount", count _recentDirectHitRecords],
+		["recentFallbackSurfaceCount", count _recentFallbackSurfaceRecords],
+		["recentAirPolicyCount", count _recentAirPolicyRecords],
+		["recentEmergencyFallbackCount", count _recentEmergencyFallbackRecords],
+		["recentKnownBadPatternCount", count _recentKnownBadPatternRecords],
+		["recentKnownBadPatternUavNetIds", _recentKnownBadPatternUavNetIds],
+		["recentDeliveryPolicyMismatchCount", count _recentDeliveryPolicyMismatchRecords],
+		["recentDeliveryPolicyMismatchUavNetIds", _recentDeliveryPolicyMismatchUavNetIds],
+		["recentClosureQualifiedDirectHitCount", count _recentClosureQualifiedDirectHitRecords],
+		["recentClosureQualifiedFallbackSurfaceCount", count _recentClosureQualifiedFallbackSurfaceRecords],
+		["holdoffConfiguredActiveCount", count _holdoffConfiguredImpactNetIds],
+		["holdoffConfiguredActiveNetIds", _holdoffConfiguredImpactNetIds]
+	]],
+	["phase4IntegrationSummary", createHashMapFromArray [
+		["activeDirectHitCount", count _activeDirectHitNetIds],
+		["activeDirectHitNetIds", _activeDirectHitNetIds],
+		["activeFallbackSurfaceCount", count _activeFallbackSurfaceNetIds],
+		["activeFallbackSurfaceNetIds", _activeFallbackSurfaceNetIds],
+		["phase4TuningInvalidNetIds", _phase4TuningInvalidNetIds],
+		["recentDirectBodyCount", count _recentDirectBodyRecords],
+		["recentDirectBodyPrimaryCount", count _recentDirectBodyPrimaryRecords],
+		["recentDirectHitImpactDeliveryCount", count _recentDirectHitImpactDeliveryRecords],
+		["recentDirectHitUavDeliveryCount", count _recentDirectHitUavDeliveryRecords],
+		["recentFallbackSurfaceImpactDeliveryCount", count _recentFallbackSurfaceImpactDeliveryRecords],
+		["recentFallbackSurfaceUavDeliveryCount", count _recentFallbackSurfaceUavDeliveryRecords],
+		["recentSurfacePrimaryUavDeliveryCount", count _recentSurfacePrimaryUavDeliveryRecords],
+		["recentKnownBadPatternCount", count _recentKnownBadPatternRecords]
+	]],
+	["phase5AcceptanceSummary", createHashMapFromArray [
+		["status", _acceptanceStatus],
+		["readyForLanAcceptanceRuns", _readyForLanAcceptanceRuns],
+		["acceptanceGateClear", _acceptanceGateClear],
+		["validationHealthy", _validationHealthy],
+		["validationWarningCount", count _validationWarnings],
+		["recentEvidenceAvailable", _recentEvidenceAvailable],
+		["knownBadPatternCleared", _knownBadPatternCleared],
+		["directHitDeliveryHealthy", _directHitDeliveryHealthy],
+		["surfaceDeliveryHealthy", _surfaceDeliveryHealthy],
+		["directBodyEvidenceAvailable", _directBodyEvidenceAvailable],
+		["directBodyPrimaryEvidenceAvailable", _directBodyPrimaryEvidenceAvailable],
+		["phase4TuningInvalidCount", count _phase4TuningInvalidNetIds],
+		["recentDetonationCount", count _recentDetonationSnapshot],
+		["recentDirectBodyCount", count _recentDirectBodyRecords],
+		["recentDirectBodyPrimaryCount", count _recentDirectBodyPrimaryRecords],
+		["recentKnownBadPatternCount", count _recentKnownBadPatternRecords],
+		["recentDirectHitUavDeliveryCount", count _recentDirectHitUavDeliveryRecords],
+		["recentSurfacePrimaryUavDeliveryCount", count _recentSurfacePrimaryUavDeliveryRecords],
+		["focusAreas", _acceptanceFocusAreas]
 	]],
 	["validation", createHashMapFromArray [
 		["warnings", _validationWarnings],
@@ -426,9 +712,9 @@ createHashMapFromArray [
 		["telemetryReadyNetIds", _impactTelemetryReadyNetIds],
 		["activeVendors", _impactActiveVendors],
 		["activeSites", _impactActiveSites],
-		["recentDetonationCount", count _recentDetonations]
+		["recentDetonationCount", count _recentDetonationSnapshot]
 	]],
-	["recentDetonations", _recentDetonations],
+	["recentDetonations", _recentDetonationSnapshot],
 	["registry", _registrySnapshot],
 	["managedDrones", _managedDrones]
 ]
