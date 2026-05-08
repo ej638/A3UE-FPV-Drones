@@ -55,6 +55,135 @@ private _restoreTerminalVectorControl = {
 	true
 };
 
+private _impactSolutionFromCache = {
+	params ["_uav"];
+
+	if (isNull _uav) exitWith {[objNull, "NONE", "NO_UAV"] call A3UE_fnc_fpv_emptyImpactSolution};
+
+	createHashMapFromArray [
+		["valid", _uav getVariable ["A3UE_FPV_lastImpactValid", false]],
+		["impactMode", _uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"]],
+		["impactPointASL", _uav getVariable ["A3UE_FPV_lastImpactPointASL", []]],
+		["surfaceType", _uav getVariable ["A3UE_FPV_lastImpactSurfaceType", "none"]],
+		["surfaceObject", objectFromNetId (_uav getVariable ["A3UE_FPV_lastImpactSurfaceObjectNetId", ""])],
+		["targetNetId", _uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]],
+		["reason", _uav getVariable ["A3UE_FPV_lastImpactReason", "NONE"]],
+		["fallbackAllowed", _uav getVariable ["A3UE_FPV_lastImpactFallbackAllowed", true]],
+		["fallbackRadius", _uav getVariable ["A3UE_FPV_lastImpactFallbackRadius", 0]],
+		["updatedAt", _uav getVariable ["A3UE_FPV_lastImpactTelemetryAt", -1]]
+	]
+};
+
+private _storeImpactSolution = {
+	params ["_uav", ["_impactSolution", createHashMap], ["_uavPosAsl", []], ["_targetPosAsl", []]];
+
+	if (isNull _uav) exitWith {false};
+
+	private _impactMode = _impactSolution getOrDefault ["impactMode", "NONE"];
+	private _impactPointAsl = _impactSolution getOrDefault ["impactPointASL", []];
+	private _surfaceType = _impactSolution getOrDefault ["surfaceType", "none"];
+	private _surfaceObject = _impactSolution getOrDefault ["surfaceObject", objNull];
+	private _targetNetId = _impactSolution getOrDefault ["targetNetId", ""];
+	private _reason = _impactSolution getOrDefault ["reason", "NONE"];
+	private _valid = _impactSolution getOrDefault ["valid", false];
+	private _fallbackAllowed = _impactSolution getOrDefault ["fallbackAllowed", true];
+	private _fallbackRadius = _impactSolution getOrDefault ["fallbackRadius", 0];
+	private _updatedAt = _impactSolution getOrDefault ["updatedAt", time];
+
+	if !(_impactMode isEqualType "") then {
+		_impactMode = "NONE";
+	};
+
+	if !(_surfaceType isEqualType "") then {
+		_surfaceType = "none";
+	};
+
+	if !(_targetNetId isEqualType "") then {
+		_targetNetId = "";
+	};
+
+	if !(_reason isEqualType "") then {
+		_reason = "NONE";
+	};
+
+	if !(_valid isEqualType true) then {
+		_valid = false;
+	};
+
+	if !(_fallbackAllowed isEqualType true) then {
+		_fallbackAllowed = true;
+	};
+
+	if !(_fallbackRadius isEqualType 0) then {
+		_fallbackRadius = 0;
+	};
+
+	if !(_updatedAt isEqualType 0) then {
+		_updatedAt = time;
+	};
+
+	_uav setVariable ["A3UE_FPV_terminalImpactMode", _impactMode, true];
+	_uav setVariable ["A3UE_FPV_lastImpactValid", _valid, true];
+	_uav setVariable ["A3UE_FPV_lastImpactPointASL", _impactPointAsl, true];
+	_uav setVariable ["A3UE_FPV_lastImpactSurfaceType", _surfaceType, true];
+	_uav setVariable ["A3UE_FPV_lastImpactSurfaceObjectNetId", if (isNull _surfaceObject) then {""} else {netId _surfaceObject}, true];
+	_uav setVariable ["A3UE_FPV_lastImpactTargetNetId", _targetNetId, true];
+	_uav setVariable ["A3UE_FPV_lastImpactReason", _reason, true];
+	_uav setVariable ["A3UE_FPV_lastImpactFallbackAllowed", _fallbackAllowed, true];
+	_uav setVariable ["A3UE_FPV_lastImpactFallbackRadius", _fallbackRadius, true];
+	_uav setVariable ["A3UE_FPV_lastImpactEvalPosASL", _uavPosAsl, true];
+	_uav setVariable ["A3UE_FPV_lastImpactTargetPosASL", _targetPosAsl, true];
+	_uav setVariable ["A3UE_FPV_lastImpactTelemetryAt", _updatedAt, true];
+
+	true
+};
+
+private _resolveImpactSolution = {
+	params ["_uav", "_target", "_profile", ["_force", false], ["_now", time]];
+
+	if (isNull _uav) exitWith {[objNull, "NONE", "NO_UAV"] call A3UE_fnc_fpv_emptyImpactSolution};
+
+	if (isNull _target || {!alive _target}) exitWith {
+		private _emptySolution = [_target, "NONE", "NO_TARGET"] call A3UE_fnc_fpv_emptyImpactSolution;
+		[_uav, _emptySolution, [], []] call _storeImpactSolution;
+		_emptySolution
+	};
+
+	private _refreshTTL = [_profile, "impactSurfaceRefreshTTL", 0.10] call A3UE_fnc_fpv_profileValue;
+	private _refreshDistance = [_profile, "impactSurfaceRefreshDistance", 10] call A3UE_fnc_fpv_profileValue;
+	if (!(_refreshTTL isEqualType 0) || {_refreshTTL <= 0}) then {
+		_refreshTTL = 0.10;
+	};
+	if (!(_refreshDistance isEqualType 0) || {_refreshDistance <= 0}) then {
+		_refreshDistance = 10;
+	};
+
+	private _uavPosAsl = getPosASL _uav;
+	private _targetPosAsl = getPosASL _target;
+	private _cachedTargetNetId = _uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""];
+	private _cachedPoint = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
+	private _cachedEvalPos = _uav getVariable ["A3UE_FPV_lastImpactEvalPosASL", []];
+	private _cachedTargetPos = _uav getVariable ["A3UE_FPV_lastImpactTargetPosASL", []];
+	private _cachedUpdatedAt = _uav getVariable ["A3UE_FPV_lastImpactTelemetryAt", -1];
+	private _needsRefresh = _force ||
+		{_cachedTargetNetId != netId _target} ||
+		{!(_cachedPoint isEqualType []) || {_cachedPoint isEqualTo []}} ||
+		{!(_cachedEvalPos isEqualType []) || {_cachedEvalPos isEqualTo []}} ||
+		{!(_cachedTargetPos isEqualType []) || {_cachedTargetPos isEqualTo []}} ||
+		{!(_cachedUpdatedAt isEqualType 0) || {_cachedUpdatedAt < 0}} ||
+		{_now >= (_cachedUpdatedAt + _refreshTTL)} ||
+		{(_uavPosAsl vectorDistance _cachedEvalPos) > _refreshDistance} ||
+		{(_targetPosAsl vectorDistance _cachedTargetPos) > _refreshDistance};
+
+	if (_needsRefresh) then {
+		private _impactSolution = [_uav, _target, _profile] call A3UE_fnc_fpv_resolveImpactPoint;
+		[_uav, _impactSolution, _uavPosAsl, _targetPosAsl] call _storeImpactSolution;
+		_impactSolution
+	} else {
+		[_uav] call _impactSolutionFromCache
+	}
+};
+
 private _computeSleepTime = {
 	params ["_now", "_tickTimes"];
 
@@ -209,14 +338,26 @@ while {
 							_nextGuidanceTick = _now + 0.1;
 							_nextTargetScanTick = _now + 0.1;
 						} else {
-							private _distanceToTarget = (getPosASL _uav) vectorDistance (getPosASL _target);
 							[_uav, _target, _profile] call _storeTargetMemory;
+							[_uav, _target, _profile, false, _now] call _resolveImpactSolution;
+							private _distanceToTarget = (getPosASL _uav) vectorDistance (getPosASL _target);
+							private _impactPointAsl = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
+							private _distanceToImpact = if ((_uav getVariable ["A3UE_FPV_lastImpactValid", false]) && {(_uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]) == netId _target} && {_impactPointAsl isEqualType [] && {count _impactPointAsl >= 3}}) then {
+								(getPosASL _uav) vectorDistance _impactPointAsl
+							} else {
+								_distanceToTarget
+							};
 							[_uav, _target, _profile] call A3UE_fnc_fpv_runTerminal;
 
 							if ([_uav, _target, _profile] call A3UE_fnc_fpv_shouldDetonateNow) then {
-								[_uav, _target] call A3UE_fnc_fpv_detonateCompat;
+								[
+									_uav,
+									_target,
+									_uav getVariable ["A3UE_FPV_lastDetonationReason", "NONE"],
+									_uav getVariable ["A3UE_FPV_lastFallbackReason", "NONE"]
+								] call A3UE_fnc_fpv_detonateCompat;
 							} else {
-								if (_distanceToTarget <= _terminalSteeringDistance) then {
+								if (_distanceToImpact <= _terminalSteeringDistance) then {
 									private _entryVelocity = velocity _uav;
 									private _entrySpeed = (vectorMagnitude _entryVelocity) * 3.6;
 									if (_entrySpeed <= 0) then {
@@ -225,9 +366,9 @@ while {
 									_uav setVariable ["A3UE_FPV_mode", "TERMINAL_VECTOR", true];
 									_uav setVariable ["A3UE_FPV_terminalVectorEnteredAt", _now];
 									_uav setVariable ["A3UE_FPV_terminalVectorEntrySpeed", _entrySpeed, true];
-									_uav setVariable ["A3UE_FPV_terminalVectorEntryDistance", _distanceToTarget, true];
+									_uav setVariable ["A3UE_FPV_terminalVectorEntryDistance", _distanceToImpact, true];
 									_uav setVariable ["A3UE_FPV_terminalVectorLastUpdateAt", -1];
-									_uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", _distanceToTarget];
+									_uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", _distanceToImpact];
 									_nextGuidanceTick = _now + 0.01;
 								} else {
 									_nextGuidanceTick = _now + 0.02;
@@ -250,7 +391,12 @@ while {
 							_nextGuidanceTick = _now + 0.1;
 							_nextTargetScanTick = _now + 0.1;
 						} else {
-							private _currentDistance = (getPosASL _uav) vectorDistance (getPosASL _target);
+							private _impactPointAsl = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
+							private _currentDistance = if ((_uav getVariable ["A3UE_FPV_lastImpactValid", false]) && {(_uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]) == netId _target} && {_impactPointAsl isEqualType [] && {count _impactPointAsl >= 3}}) then {
+								(getPosASL _uav) vectorDistance _impactPointAsl
+							} else {
+								(getPosASL _uav) vectorDistance (getPosASL _target)
+							};
 							private _enteredAt = _uav getVariable ["A3UE_FPV_terminalVectorEnteredAt", _now];
 							private _lastDistance = _uav getVariable ["A3UE_FPV_lastTerminalVectorDistance", _currentDistance];
 							private _missedPass = (_now > (_enteredAt + 0.15)) && {(_currentDistance > (_lastDistance + 8))};
@@ -263,12 +409,18 @@ while {
 								_nextTargetScanTick = _now + 0.1;
 							} else {
 								[_uav, _target, _profile] call _storeTargetMemory;
+								[_uav, _target, _profile, false, _now] call _resolveImpactSolution;
 								if ([_uav, _target, _profile] call A3UE_fnc_fpv_runTerminalVector) then {
 									_uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", _currentDistance];
 								};
 
 								if ([_uav, _target, _profile] call A3UE_fnc_fpv_shouldDetonateNow) then {
-									[_uav, _target] call A3UE_fnc_fpv_detonateCompat;
+									[
+										_uav,
+										_target,
+										_uav getVariable ["A3UE_FPV_lastDetonationReason", "NONE"],
+										_uav getVariable ["A3UE_FPV_lastFallbackReason", "NONE"]
+									] call A3UE_fnc_fpv_detonateCompat;
 								} else {
 									_nextGuidanceTick = _now + 0.01;
 								};

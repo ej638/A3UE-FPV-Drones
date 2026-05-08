@@ -5,16 +5,30 @@ if (!local _uav) exitWith {false};
 if ([_uav] call A3UE_fnc_fpv_isExternallyControlled) exitWith {false};
 if ((_uav getVariable ["A3UE_FPV_linkModel", "RADIO"]) isEqualTo "RADIO" && {(_uav getVariable ["A3UE_FPV_linkState", "OK"]) == "EW_DENIED"}) exitWith {false};
 
-private _leadPosAsl = [_uav, _target, _profile, true] call A3UE_fnc_fpv_computeIntercept;
-if (_leadPosAsl isEqualTo [] || {count _leadPosAsl < 3}) exitWith {false};
+private _impactPointAsl = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
+private _impactMode = _uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"];
+private _hasImpactPoint = (_uav getVariable ["A3UE_FPV_lastImpactValid", false]) && {
+	(_uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]) == netId _target && {
+		_impactPointAsl isEqualType [] && {
+			count _impactPointAsl >= 3
+		}
+	}
+};
+
+private _aimPointAsl = if (_hasImpactPoint) then {
+	+_impactPointAsl
+} else {
+	[_uav, _target, _profile, true] call A3UE_fnc_fpv_computeIntercept
+};
+
+if (_aimPointAsl isEqualTo [] || {count _aimPointAsl < 3}) exitWith {false};
 
 private _uavPosAsl = getPosASL _uav;
 private _currentVelocity = velocity _uav;
 private _currentSpeedBudget = (vectorMagnitude _currentVelocity) * 3.6;
 private _currentDir = vectorDir _uav;
-private _targetPosAsl = getPosASL _target;
-private _currentDistance = _uavPosAsl vectorDistance _targetPosAsl;
-private _aimVector = _leadPosAsl vectorDiff _uavPosAsl;
+private _currentDistance = _uavPosAsl vectorDistance _aimPointAsl;
+private _aimVector = _aimPointAsl vectorDiff _uavPosAsl;
 private _verticalGain = [_profile, "terminalVerticalGain", 0.65] call A3UE_fnc_fpv_profileValue;
 if (!(_verticalGain isEqualType 0) || {_verticalGain <= 0}) then {
 	_verticalGain = 0.65;
@@ -104,11 +118,23 @@ if (!(_terminalVectorSpeedLagTolerance isEqualType 0) || {_terminalVectorSpeedLa
 	_terminalVectorSpeedLagTolerance = 6;
 };
 
+private _terminalDescentEnforceDistance = [_profile, "terminalDescentEnforceDistance", round (_terminalVectorEntryDistance * 0.45)] call A3UE_fnc_fpv_profileValue;
+if (!(_terminalDescentEnforceDistance isEqualType 0) || {_terminalDescentEnforceDistance < 0}) then {
+	_terminalDescentEnforceDistance = round (_terminalVectorEntryDistance * 0.45);
+};
+
+private _terminalDescentMinRate = [_profile, "terminalDescentMinRate", 5] call A3UE_fnc_fpv_profileValue;
+if (!(_terminalDescentMinRate isEqualType 0) || {_terminalDescentMinRate <= 0}) then {
+	_terminalDescentMinRate = 5;
+};
+
 _terminalVectorInnerFuseMinSpeed = (_terminalVectorInnerFuseMinSpeed min _terminalVectorMaxSpeed) max 1;
 _terminalVectorMinAccelAlignment = (_terminalVectorMinAccelAlignment max -1) min 1;
 _terminalVectorFullAccelAlignment = (_terminalVectorFullAccelAlignment max _terminalVectorMinAccelAlignment) min 1;
 _terminalVectorTurnBlendMin = (_terminalVectorTurnBlendMin max 0) min 1;
 _terminalVectorTurnBlendMax = (_terminalVectorTurnBlendMax max _terminalVectorTurnBlendMin) min 1;
+_terminalDescentEnforceDistance = _terminalDescentEnforceDistance max 0;
+_terminalDescentMinRate = _terminalDescentMinRate max 0.1;
 
 private _alignment = ((_normalizedCurrentDir vectorDotProduct _normalizedAimVector) max -1) min 1;
 private _alignmentAccelFactor = linearConversion [_terminalVectorMinAccelAlignment, _terminalVectorFullAccelAlignment, _alignment, 0, 1, true];
@@ -175,6 +201,19 @@ private _nextSpeedBudget = if (_speedDelta >= 0) then {
 };
 
 private _desiredVelocity = _blendedDir vectorMultiply (_nextSpeedBudget / 3.6);
+
+if (_impactMode != "AIR_PROXIMITY" && {_currentDistance <= _terminalDescentEnforceDistance}) then {
+	private _heightAboveImpact = (_uavPosAsl select 2) - (_aimPointAsl select 2);
+	if (_heightAboveImpact > 0.25) then {
+		_desiredVelocity set [2, (_desiredVelocity select 2) min (-_terminalDescentMinRate)];
+
+		private _desiredVelocityMagnitude = vectorMagnitude _desiredVelocity;
+		private _speedCapMps = (_nextSpeedBudget / 3.6) max 0.1;
+		if (_desiredVelocityMagnitude > _speedCapMps) then {
+			_desiredVelocity = _desiredVelocity vectorMultiply (_speedCapMps / _desiredVelocityMagnitude);
+		};
+	};
+};
 
 {
 	_x disableAI "PATH";

@@ -898,6 +898,20 @@ private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
 hint str (_snapshot get "validation");
 ```
 
+Inspect the impact summary directly:
+
+```sqf
+private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
+hint str (_snapshot get "impactSummary");
+```
+
+Inspect recent detonation records directly:
+
+```sqf
+private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
+hint str (_snapshot get "recentDetonations");
+```
+
 ### 14.4.1 Telemetry interpretation
 
 Use the impact telemetry fields as follows:
@@ -911,6 +925,8 @@ Use the impact telemetry fields as follows:
 - `lastDetonationReason`: the reason the drone was allowed to detonate.
 - `lastFallbackReason`: why the drone fell back from direct-impact semantics when it did.
 
+Because a successful strike deletes the UAV, post-strike review should use `recentDetonations` from `A3UE_fnc_fpv_debugSnapshot` rather than only trying to inspect a now-destroyed drone object.
+
 Healthy impact-first behavior should generally look like this:
 
 - `terminalImpactMode` changes to a believable target-class mode in terminal phases;
@@ -919,6 +935,13 @@ Healthy impact-first behavior should generally look like this:
 - `lastTimeToContact` falls toward a small positive value before primary detonation approval;
 - `lastDetonationReason` is usually `DIRECT_CONTACT`, `PREDICTED_IMPACT`, or `CLOSURE_QUALIFIED` for clean runs;
 - fallback reasons only appear when the direct-impact path legitimately collapses.
+
+Healthy recent detonation records should generally look like this:
+
+- `deliveryMode` is `IMPACT_POINT` for `DIRECT_CONTACT` and `PREDICTED_IMPACT` strikes.
+- `deliveryMode` remains `UAV_POSITION` for fallback bursts.
+- `deliveryPosASL` should sit on or extremely near the selected impact surface for impact-point delivery.
+- `impactMode`, `surfaceType`, `detonationReason`, and `fallbackReason` should match the behavior observed in game.
 
 ### 14.4.2 Validation block interpretation
 
@@ -929,9 +952,19 @@ Recommended expectations after implementation:
 - `impactTelemetryMissing` stays empty.
 - `staleImpactSolutions` stays empty.
 - `invalidImpactModes` stays empty.
-- `nonLocalControllers` stays empty.
-- `controllerOwnerMismatches` stays empty.
+- `nonLocalImpactControllers` stays empty.
+- `impactControllerOwnerMismatches` stays empty.
 - `warnings` should normally be empty during healthy runs.
+
+### 14.4.3 Impact summary interpretation
+
+The `impactSummary` block in `A3UE_fnc_fpv_debugSnapshot` is the fast operational summary for active impact-first behavior.
+
+- `activeNetIds` lists drones currently in `TERMINAL_ATTACK` or `TERMINAL_VECTOR`.
+- `localNetIds` lists the active impact drones local to the current machine.
+- `telemetryReadyNetIds` lists active impact drones with the expected impact telemetry fields populated.
+- `activeVendors` and `activeSites` summarize the families and sites currently feeding impact-capable terminal runs.
+- `recentDetonationCount` gives the number of retained post-strike records in `recentDetonations`.
 
 ### 14.5 Acceptance scenarios
 
@@ -960,7 +993,7 @@ Expected result:
 
 - the drone descends into the target rather than detonating several meters above them;
 - `terminalImpactMode` resolves to a direct infantry mode or equivalent;
-- `lastDetonationReason` shows a direct-impact or predicted-impact path, not a generic proximity fallback.
+- `recentDetonations` shows a direct-impact or predicted-impact path, not a generic proximity fallback.
 
 #### Scenario 3: Infantry ground-near-target fallback strike
 
@@ -972,7 +1005,7 @@ Steps:
 Expected result:
 
 - the drone can intentionally strike ground or a nearby surface close to the target instead of airbursting above them;
-- `terminalImpactMode` or `lastFallbackReason` reflects the ground-near-target choice clearly.
+- `terminalImpactMode` or `recentDetonations` reflects the ground-near-target choice clearly.
 
 #### Scenario 4: Vehicle hull or roof strike
 
@@ -985,7 +1018,8 @@ Expected result:
 
 - the drone aims at a believable hull or roof solution rather than hovering above vehicle center;
 - direct-hit semantics or predicted-impact semantics are used when closure is good;
-- the explosion occurs at or very near the selected vehicle surface.
+- `recentDetonations.deliveryMode` becomes `IMPACT_POINT` for direct or predicted strikes;
+- `recentDetonations.deliveryPosASL` occurs at or very near the selected vehicle surface.
 
 #### Scenario 5: Static weapon or emplacement strike
 
@@ -1009,7 +1043,7 @@ Steps:
 Expected result:
 
 - the drone can choose a wall, nearby hard surface, or ground-near-target fallback strike rather than simply airbursting above cover;
-- `lastFallbackReason` and `lastImpactSurfaceType` explain the chosen behavior.
+- `recentDetonations.fallbackReason` and `recentDetonations.surfaceType` explain the chosen behavior.
 
 #### Scenario 7: Above-player regression check
 
@@ -1045,7 +1079,7 @@ Steps:
 Expected result:
 
 - the drone does not get stuck hovering or endlessly circling in armed state;
-- any fallback burst records a valid `lastFallbackReason`.
+- any fallback burst records a valid `fallbackReason` in `recentDetonations`.
 
 #### Scenario 10: External control suspension during armed terminal run
 

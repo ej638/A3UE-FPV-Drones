@@ -505,6 +505,48 @@ private _familyBehaviorDefaults = createHashMapFromArray [
 	]]
 ];
 
+private _familyImpactDefaults = createHashMapFromArray [
+	["armafpv", createHashMapFromArray [
+		["terminalImpactOffsetFar", 12],
+		["terminalImpactOffsetNear", 1],
+		["terminalDescentMinRate", 8],
+		["detonationMaxTimeToContact", 0.22],
+		["detonationMinClosingDot", 0.84],
+		["detonationMaxAltitudeAGL", 18],
+		["impactProbeDistance", 16],
+		["impactAbortTimeout", 0.45],
+		["terminalImpactHoldoffDistance", 6],
+		["impactSurfaceRefreshDistance", 12],
+		["impactSurfaceRefreshTTL", 0.10]
+	]],
+	["kvn", createHashMapFromArray [
+		["terminalImpactOffsetFar", 10],
+		["terminalImpactOffsetNear", 1],
+		["terminalDescentMinRate", 6],
+		["detonationMaxTimeToContact", 0.28],
+		["detonationMinClosingDot", 0.79],
+		["detonationMaxAltitudeAGL", 16],
+		["impactProbeDistance", 14],
+		["impactAbortTimeout", 0.55],
+		["terminalImpactHoldoffDistance", 6],
+		["impactSurfaceRefreshDistance", 11],
+		["impactSurfaceRefreshTTL", 0.12]
+	]],
+	["fpv_ua", createHashMapFromArray [
+		["terminalImpactOffsetFar", 8],
+		["terminalImpactOffsetNear", 1.5],
+		["terminalDescentMinRate", 5],
+		["detonationMaxTimeToContact", 0.32],
+		["detonationMinClosingDot", 0.74],
+		["detonationMaxAltitudeAGL", 14],
+		["impactProbeDistance", 12],
+		["impactAbortTimeout", 0.65],
+		["terminalImpactHoldoffDistance", 6],
+		["impactSurfaceRefreshDistance", 10],
+		["impactSurfaceRefreshTTL", 0.14]
+	]]
+];
+
 private _roleBehaviorDefaults = createHashMapFromArray [
 	["AT", createHashMapFromArray [
 		["targetStickyBonus", 1600],
@@ -529,6 +571,33 @@ private _roleBehaviorDefaults = createHashMapFromArray [
 		["losBlockedPenalty", 2200],
 		["obstructionPenaltyStep", 350],
 		["detonationVerticalWindow", 10]
+	]]
+];
+
+private _roleImpactDefaults = createHashMapFromArray [
+	["AT", createHashMapFromArray [
+		["terminalImpactMode", "DIRECT_HULL"],
+		["impactFallbackRadius", 3],
+		["impactFallbackGroundOffset", 1.2],
+		["detonationVehicleHullBias", 0.85],
+		["detonationInfantryGroundLead", 1.0],
+		["impactFallbackAllowObstructionSurface", true]
+	]],
+	["AP", createHashMapFromArray [
+		["terminalImpactMode", "DIRECT_BODY"],
+		["impactFallbackRadius", 4],
+		["impactFallbackGroundOffset", 0.8],
+		["detonationVehicleHullBias", 0.50],
+		["detonationInfantryGroundLead", 0.5],
+		["impactFallbackAllowObstructionSurface", true]
+	]],
+	["RECON", createHashMapFromArray [
+		["terminalImpactMode", "DIRECT_BODY"],
+		["impactFallbackRadius", 5],
+		["impactFallbackGroundOffset", 1.0],
+		["detonationVehicleHullBias", 0.40],
+		["detonationInfantryGroundLead", 0.8],
+		["impactFallbackAllowObstructionSurface", true]
 	]]
 ];
 
@@ -599,7 +668,9 @@ private _buildBehaviorProfile = {
 	[_profile, [_siteSearchProfiles getOrDefault [_siteType, createHashMap]] call _copyMap] call _mergeInto;
 	[_profile, [_siteLostTargetProfiles getOrDefault [_siteType, createHashMap]] call _copyMap] call _mergeInto;
 	[_profile, [_familyBehaviorDefaults getOrDefault [_familyId, createHashMap]] call _copyMap] call _mergeInto;
+	[_profile, [_familyImpactDefaults getOrDefault [_familyId, createHashMap]] call _copyMap] call _mergeInto;
 	[_profile, [_roleBehaviorDefaults getOrDefault [_roleId, createHashMap]] call _copyMap] call _mergeInto;
+	[_profile, [_roleImpactDefaults getOrDefault [_roleId, createHashMap]] call _copyMap] call _mergeInto;
 	[_profile, createHashMapFromArray _authoredSpecs] call _mergeInto;
 
 	private _familyMaxSpeed = _profile getOrDefault ["familyMaxSpeed", 100];
@@ -633,6 +704,24 @@ private _buildBehaviorProfile = {
 	private _terminalVectorRampDistance = _profile getOrDefault ["terminalVectorRampDistance", round (_terminalSteeringDistance * _terminalVectorRampDistanceFactor)];
 	private _terminalVectorInnerFuseSlowdownDistance = _profile getOrDefault ["terminalVectorInnerFuseSlowdownDistance", ((_detonationDistance + _terminalVectorInnerFuseSlowdownOffset) max (_detonationDistance + 4))];
 	private _terminalVectorInnerFuseMinSpeed = _profile getOrDefault ["terminalVectorInnerFuseMinSpeed", round (_terminalVectorEntrySpeed * _terminalVectorInnerFuseMinSpeedFactor)];
+	private _terminalImpactMode = _profile getOrDefault ["terminalImpactMode", "DIRECT_BODY"];
+	private _terminalImpactOffsetFar = _profile getOrDefault ["terminalImpactOffsetFar", (_profile getOrDefault ["attackHeightASL", 8])];
+	private _terminalImpactOffsetNear = _profile getOrDefault ["terminalImpactOffsetNear", 0];
+	private _terminalDescentMinRate = _profile getOrDefault ["terminalDescentMinRate", 5];
+	private _terminalDescentEnforceDistance = _profile getOrDefault ["terminalDescentEnforceDistance", round (_terminalSteeringDistance * 0.45)];
+	private _detonationMaxTimeToContact = _profile getOrDefault ["detonationMaxTimeToContact", 0.25];
+	private _detonationMinClosingDot = _profile getOrDefault ["detonationMinClosingDot", 0.75];
+	private _detonationMaxAltitudeAGL = _profile getOrDefault ["detonationMaxAltitudeAGL", (_profile getOrDefault ["detonationVerticalWindow", 12])];
+	private _impactFallbackRadius = _profile getOrDefault ["impactFallbackRadius", 4];
+	private _impactFallbackGroundOffset = _profile getOrDefault ["impactFallbackGroundOffset", 1];
+	private _impactProbeDistance = _profile getOrDefault ["impactProbeDistance", round (_terminalSteeringDistance * 0.20)];
+	private _impactAbortTimeout = _profile getOrDefault ["impactAbortTimeout", 0.50];
+	private _terminalImpactHoldoffDistance = _profile getOrDefault ["terminalImpactHoldoffDistance", (_detonationDistance + 2)];
+	private _impactSurfaceRefreshDistance = _profile getOrDefault ["impactSurfaceRefreshDistance", 10];
+	private _impactSurfaceRefreshTTL = _profile getOrDefault ["impactSurfaceRefreshTTL", 0.10];
+	private _detonationVehicleHullBias = _profile getOrDefault ["detonationVehicleHullBias", 0.50];
+	private _detonationInfantryGroundLead = _profile getOrDefault ["detonationInfantryGroundLead", 0.75];
+	private _impactFallbackAllowObstructionSurface = _profile getOrDefault ["impactFallbackAllowObstructionSurface", true];
 
 	_terminalAttackSpeed = _terminalAttackSpeed min _terminalCap;
 	_terminalVectorMaxSpeed = _terminalVectorMaxSpeed min _terminalCap;
@@ -647,6 +736,28 @@ private _buildBehaviorProfile = {
 	_terminalVectorRampDistance = (_terminalVectorRampDistance max 1) min _terminalSteeringDistance;
 	_terminalVectorInnerFuseSlowdownDistance = (_terminalVectorInnerFuseSlowdownDistance max (_detonationDistance + 4)) min (_terminalSteeringDistance - 2);
 	_terminalVectorInnerFuseMinSpeed = (_terminalVectorInnerFuseMinSpeed min _terminalVectorMaxSpeed) max 1;
+	if !(_terminalImpactMode in ["DIRECT_BODY", "DIRECT_HULL", "DIRECT_STATIC", "GROUND_NEAR_TARGET", "OBSTRUCTION_SURFACE", "AIR_PROXIMITY", "NONE"]) then {
+		_terminalImpactMode = "DIRECT_BODY";
+	};
+	_terminalImpactOffsetFar = _terminalImpactOffsetFar max 0;
+	_terminalImpactOffsetNear = (_terminalImpactOffsetNear max 0) min _terminalImpactOffsetFar;
+	_terminalDescentMinRate = _terminalDescentMinRate max 0.1;
+	_terminalDescentEnforceDistance = (_terminalDescentEnforceDistance max 1) min _terminalSteeringDistance;
+	_detonationMaxTimeToContact = (_detonationMaxTimeToContact max 0.05) min 1;
+	_detonationMinClosingDot = (_detonationMinClosingDot max 0) min 1;
+	_detonationMaxAltitudeAGL = _detonationMaxAltitudeAGL max 0;
+	_impactFallbackRadius = _impactFallbackRadius max 0;
+	_impactFallbackGroundOffset = _impactFallbackGroundOffset max 0;
+	_impactProbeDistance = (_impactProbeDistance max 1) min (_terminalSteeringDistance max 1);
+	_impactAbortTimeout = (_impactAbortTimeout max 0.05) min 5;
+	_terminalImpactHoldoffDistance = (_terminalImpactHoldoffDistance max 0) min _terminalSteeringDistance;
+	_impactSurfaceRefreshDistance = _impactSurfaceRefreshDistance max 1;
+	_impactSurfaceRefreshTTL = (_impactSurfaceRefreshTTL max 0.01) min 5;
+	_detonationVehicleHullBias = (_detonationVehicleHullBias max 0) min 1;
+	_detonationInfantryGroundLead = _detonationInfantryGroundLead max 0;
+	if !(_impactFallbackAllowObstructionSurface isEqualType true) then {
+		_impactFallbackAllowObstructionSurface = true;
+	};
 
 	_profile set ["trackingSpeed", _trackingSpeed];
 	_profile set ["terminalSpeed", _terminalSpeed];
@@ -668,6 +779,24 @@ private _buildBehaviorProfile = {
 	_profile set ["trackBreakDistance", _trackBreakDistance];
 	_profile set ["dropTargetDistance", _trackBreakDistance + 150];
 	_profile set ["terminalSteeringDistance", _terminalSteeringDistance];
+	_profile set ["terminalImpactMode", _terminalImpactMode];
+	_profile set ["terminalImpactOffsetFar", _terminalImpactOffsetFar];
+	_profile set ["terminalImpactOffsetNear", _terminalImpactOffsetNear];
+	_profile set ["terminalDescentMinRate", _terminalDescentMinRate];
+	_profile set ["terminalDescentEnforceDistance", _terminalDescentEnforceDistance];
+	_profile set ["detonationMaxTimeToContact", _detonationMaxTimeToContact];
+	_profile set ["detonationMinClosingDot", _detonationMinClosingDot];
+	_profile set ["detonationMaxAltitudeAGL", _detonationMaxAltitudeAGL];
+	_profile set ["impactFallbackRadius", _impactFallbackRadius];
+	_profile set ["impactFallbackGroundOffset", _impactFallbackGroundOffset];
+	_profile set ["impactProbeDistance", _impactProbeDistance];
+	_profile set ["impactAbortTimeout", _impactAbortTimeout];
+	_profile set ["terminalImpactHoldoffDistance", _terminalImpactHoldoffDistance];
+	_profile set ["impactSurfaceRefreshDistance", _impactSurfaceRefreshDistance];
+	_profile set ["impactSurfaceRefreshTTL", _impactSurfaceRefreshTTL];
+	_profile set ["detonationVehicleHullBias", _detonationVehicleHullBias];
+	_profile set ["detonationInfantryGroundLead", _detonationInfantryGroundLead];
+	_profile set ["impactFallbackAllowObstructionSurface", _impactFallbackAllowObstructionSurface];
 	_profile set ["maxLeadTimeNear", _leadNear];
 	_profile set ["maxLeadTimeFar", _leadFar];
 	_profile set ["maxLeadDistance", _siteLeadDistanceCaps getOrDefault [_siteType, 550]];

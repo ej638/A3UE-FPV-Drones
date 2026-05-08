@@ -4,21 +4,38 @@ if (isNull _uav || {isNull _target}) exitWith {false};
 if (!local _uav) exitWith {false};
 
 private _targetPosAsl = getPosASL _target;
-private _terminalInterceptAsl = [_uav, _target, _profile, true] call A3UE_fnc_fpv_computeIntercept;
-private _finalHeightOffset = [_profile, "attackHeightASL", 6] call A3UE_fnc_fpv_profileValue;
-if (!(_finalHeightOffset isEqualType 0)) then {
-	_finalHeightOffset = 6;
+private _impactPointAsl = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
+private _impactMode = _uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"];
+private _hasImpactPoint = (_uav getVariable ["A3UE_FPV_lastImpactValid", false]) && {
+	(_uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]) == netId _target && {
+		_impactPointAsl isEqualType [] && {
+			count _impactPointAsl >= 3
+		}
+	}
 };
 
-private _terminalPosAsl = if (_terminalInterceptAsl isEqualTo [] || {count _terminalInterceptAsl < 3}) then {
+private _terminalAimBaseAsl = if (_hasImpactPoint) then {
+	+_impactPointAsl
+} else {
 	+_targetPosAsl
+};
+
+private _terminalInterceptAsl = [_uav, _target, _profile, true] call A3UE_fnc_fpv_computeIntercept;
+
+private _terminalPosAsl = if (_terminalInterceptAsl isEqualTo [] || {count _terminalInterceptAsl < 3}) then {
+	+_terminalAimBaseAsl
 } else {
 	+_terminalInterceptAsl
 };
-_terminalPosAsl set [2, ((_targetPosAsl select 2) + _finalHeightOffset) max (_terminalPosAsl select 2)];
 
 private _terminalPosAtl = ASLToATL _terminalPosAsl;
-private _terminalHeight = ((_terminalPosAtl select 2) max 5);
+private _terminalImpactOffsetNear = [_profile, "terminalImpactOffsetNear", 1] call A3UE_fnc_fpv_profileValue;
+if (!(_terminalImpactOffsetNear isEqualType 0) || {_terminalImpactOffsetNear < 0}) then {
+	_terminalImpactOffsetNear = 1;
+};
+
+private _terminalHeightFloor = if (_impactMode == "AIR_PROXIMITY") then {5} else {_terminalImpactOffsetNear max 1};
+private _terminalHeight = ((_terminalPosAtl select 2) max _terminalHeightFloor);
 private _payloadRole = _uav getVariable ["A3UE_FPV_payloadRole", "AP"];
 
 private _defaultTerminalSpeed = switch (_payloadRole) do {
@@ -27,7 +44,7 @@ private _defaultTerminalSpeed = switch (_payloadRole) do {
 	default { 100 };
 };
 
-private _terminalSpeed = [_profile, "terminalSpeed", _defaultTerminalSpeed] call A3UE_fnc_fpv_profileValue;
+private _terminalSpeed = [_profile, "terminalAttackSpeed", [_profile, "terminalSpeed", _defaultTerminalSpeed] call A3UE_fnc_fpv_profileValue] call A3UE_fnc_fpv_profileValue;
 if (!(_terminalSpeed isEqualType 0) || {_terminalSpeed <= 0}) then {
 	_terminalSpeed = _defaultTerminalSpeed;
 };

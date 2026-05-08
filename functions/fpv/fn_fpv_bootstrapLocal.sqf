@@ -70,6 +70,12 @@ if !((_uav getVariable ["A3UE_FPV_mode", "IDLE"]) in ["IDLE", "SEARCHING", "TRAC
 	_uav setVariable ["A3UE_FPV_mode", "IDLE", true];
 };
 
+private _impactProfile = [_uav] call A3UE_fnc_fpv_getProfile;
+private _defaultImpactMode = _impactProfile getOrDefault ["terminalImpactMode", "NONE"];
+if !(_defaultImpactMode isEqualType "") then {
+	_defaultImpactMode = "NONE";
+};
+
 _uav setVariable ["A3UE_FPV_cachedLinkState", _uav getVariable ["A3UE_FPV_linkState", "OK"], true];
 _uav setVariable ["A3UE_FPV_cachedSignalStrength", _uav getVariable ["A3UE_FPV_signalStrength", 1], true];
 _uav setVariable ["A3UE_FPV_nextLinkEvalAt", 0];
@@ -94,6 +100,22 @@ _uav setVariable ["A3UE_FPV_terminalVectorDt", _uav getVariable ["A3UE_FPV_termi
 _uav setVariable ["A3UE_FPV_terminalVectorSpeedJump", _uav getVariable ["A3UE_FPV_terminalVectorSpeedJump", -1], true];
 _uav setVariable ["A3UE_FPV_terminalVectorLastUpdateAt", _uav getVariable ["A3UE_FPV_terminalVectorLastUpdateAt", -1]];
 _uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", _uav getVariable ["A3UE_FPV_lastTerminalVectorDistance", -1]];
+_uav setVariable ["A3UE_FPV_terminalImpactMode", _uav getVariable ["A3UE_FPV_terminalImpactMode", _defaultImpactMode], true];
+_uav setVariable ["A3UE_FPV_lastImpactValid", _uav getVariable ["A3UE_FPV_lastImpactValid", false], true];
+_uav setVariable ["A3UE_FPV_lastImpactPointASL", _uav getVariable ["A3UE_FPV_lastImpactPointASL", []], true];
+_uav setVariable ["A3UE_FPV_lastImpactSurfaceType", _uav getVariable ["A3UE_FPV_lastImpactSurfaceType", "none"], true];
+_uav setVariable ["A3UE_FPV_lastImpactSurfaceObjectNetId", _uav getVariable ["A3UE_FPV_lastImpactSurfaceObjectNetId", ""], true];
+_uav setVariable ["A3UE_FPV_lastImpactTargetNetId", _uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""], true];
+_uav setVariable ["A3UE_FPV_lastImpactReason", _uav getVariable ["A3UE_FPV_lastImpactReason", "NONE"], true];
+_uav setVariable ["A3UE_FPV_lastImpactFallbackAllowed", _uav getVariable ["A3UE_FPV_lastImpactFallbackAllowed", true], true];
+_uav setVariable ["A3UE_FPV_lastImpactFallbackRadius", _uav getVariable ["A3UE_FPV_lastImpactFallbackRadius", 0], true];
+_uav setVariable ["A3UE_FPV_lastImpactEvalPosASL", _uav getVariable ["A3UE_FPV_lastImpactEvalPosASL", []], true];
+_uav setVariable ["A3UE_FPV_lastImpactTargetPosASL", _uav getVariable ["A3UE_FPV_lastImpactTargetPosASL", []], true];
+_uav setVariable ["A3UE_FPV_lastClosingDot", _uav getVariable ["A3UE_FPV_lastClosingDot", -2], true];
+_uav setVariable ["A3UE_FPV_lastTimeToContact", _uav getVariable ["A3UE_FPV_lastTimeToContact", -1], true];
+_uav setVariable ["A3UE_FPV_lastDetonationReason", _uav getVariable ["A3UE_FPV_lastDetonationReason", "NONE"], true];
+_uav setVariable ["A3UE_FPV_lastFallbackReason", _uav getVariable ["A3UE_FPV_lastFallbackReason", "NONE"], true];
+_uav setVariable ["A3UE_FPV_lastImpactTelemetryAt", _uav getVariable ["A3UE_FPV_lastImpactTelemetryAt", -1], true];
 
 _uav setVariable ["A3UE_FPV_controllerRunning", true];
 _uav setVariable ["A3UE_FPV_controllerOwnerId", owner _uav, true];

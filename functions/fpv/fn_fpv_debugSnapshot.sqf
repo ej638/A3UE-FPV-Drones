@@ -2,6 +2,7 @@ private _registry = missionNamespace getVariable ["A3UE_FPV_registry", createHas
 private _registrySnapshot = [];
 private _loadedMods = missionNamespace getVariable ["A3UE_FPV_loadedMods", createHashMap];
 private _catalog = missionNamespace getVariable ["A3UE_FPV_catalog", createHashMap];
+private _recentDetonations = missionNamespace getVariable ["A3UE_FPV_recentDetonations", []];
 private _loadedFamilies = [];
 private _catalogFamilies = [];
 
@@ -60,6 +61,24 @@ private _managedDrones = (allUnitsUAV select { _x getVariable ["A3UE_FPV_managed
 		["terminalVectorTurnBlendMin", _profile getOrDefault ["terminalVectorTurnBlendMin", -1]],
 		["terminalVectorTurnBlendMax", _profile getOrDefault ["terminalVectorTurnBlendMax", -1]],
 		["terminalVectorSpeedLagTolerance", _profile getOrDefault ["terminalVectorSpeedLagTolerance", -1]],
+		["terminalImpactMode", _profile getOrDefault ["terminalImpactMode", ""]],
+		["terminalImpactOffsetFar", _profile getOrDefault ["terminalImpactOffsetFar", -1]],
+		["terminalImpactOffsetNear", _profile getOrDefault ["terminalImpactOffsetNear", -1]],
+		["terminalDescentMinRate", _profile getOrDefault ["terminalDescentMinRate", -1]],
+		["terminalDescentEnforceDistance", _profile getOrDefault ["terminalDescentEnforceDistance", -1]],
+		["detonationMaxTimeToContact", _profile getOrDefault ["detonationMaxTimeToContact", -1]],
+		["detonationMinClosingDot", _profile getOrDefault ["detonationMinClosingDot", -2]],
+		["detonationMaxAltitudeAGL", _profile getOrDefault ["detonationMaxAltitudeAGL", -1]],
+		["impactFallbackRadius", _profile getOrDefault ["impactFallbackRadius", -1]],
+		["impactFallbackGroundOffset", _profile getOrDefault ["impactFallbackGroundOffset", -1]],
+		["impactProbeDistance", _profile getOrDefault ["impactProbeDistance", -1]],
+		["impactAbortTimeout", _profile getOrDefault ["impactAbortTimeout", -1]],
+		["terminalImpactHoldoffDistance", _profile getOrDefault ["terminalImpactHoldoffDistance", -1]],
+		["impactSurfaceRefreshDistance", _profile getOrDefault ["impactSurfaceRefreshDistance", -1]],
+		["impactSurfaceRefreshTTL", _profile getOrDefault ["impactSurfaceRefreshTTL", -1]],
+		["detonationVehicleHullBias", _profile getOrDefault ["detonationVehicleHullBias", -1]],
+		["detonationInfantryGroundLead", _profile getOrDefault ["detonationInfantryGroundLead", -1]],
+		["impactFallbackAllowObstructionSurface", _profile getOrDefault ["impactFallbackAllowObstructionSurface", false]],
 		["detonationDistance", _profile getOrDefault ["detonationDistance", -1]],
 		["searchRadius", _profile getOrDefault ["searchRadius", -1]],
 		["lostTargetTTL", _profile getOrDefault ["lostTargetTTL", -1]],
@@ -101,6 +120,22 @@ private _managedDrones = (allUnitsUAV select { _x getVariable ["A3UE_FPV_managed
 		["terminalVectorAlignment", _x getVariable ["A3UE_FPV_terminalVectorAlignment", -2]],
 		["terminalVectorDt", _x getVariable ["A3UE_FPV_terminalVectorDt", -1]],
 		["terminalVectorSpeedJump", _x getVariable ["A3UE_FPV_terminalVectorSpeedJump", -1]],
+		["terminalImpactMode", _x getVariable ["A3UE_FPV_terminalImpactMode", ""]],
+		["lastImpactValid", _x getVariable ["A3UE_FPV_lastImpactValid", false]],
+		["lastImpactPointASL", _x getVariable ["A3UE_FPV_lastImpactPointASL", []]],
+		["lastImpactSurfaceType", _x getVariable ["A3UE_FPV_lastImpactSurfaceType", ""]],
+		["lastImpactSurfaceObjectNetId", _x getVariable ["A3UE_FPV_lastImpactSurfaceObjectNetId", ""]],
+		["lastImpactTargetNetId", _x getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]],
+		["lastImpactReason", _x getVariable ["A3UE_FPV_lastImpactReason", ""]],
+		["lastImpactFallbackAllowed", _x getVariable ["A3UE_FPV_lastImpactFallbackAllowed", true]],
+		["lastImpactFallbackRadius", _x getVariable ["A3UE_FPV_lastImpactFallbackRadius", 0]],
+		["lastImpactEvalPosASL", _x getVariable ["A3UE_FPV_lastImpactEvalPosASL", []]],
+		["lastImpactTargetPosASL", _x getVariable ["A3UE_FPV_lastImpactTargetPosASL", []]],
+		["lastClosingDot", _x getVariable ["A3UE_FPV_lastClosingDot", -2]],
+		["lastTimeToContact", _x getVariable ["A3UE_FPV_lastTimeToContact", -1]],
+		["lastDetonationReason", _x getVariable ["A3UE_FPV_lastDetonationReason", ""]],
+		["lastFallbackReason", _x getVariable ["A3UE_FPV_lastFallbackReason", ""]],
+		["lastImpactTelemetryAt", _x getVariable ["A3UE_FPV_lastImpactTelemetryAt", -1]],
 		["lastTerminalVectorDistance", _x getVariable ["A3UE_FPV_lastTerminalVectorDistance", -1]],
 		["controllerRunning", _x getVariable ["A3UE_FPV_controllerRunning", false]],
 		["controllerOwnerId", _x getVariable ["A3UE_FPV_controllerOwnerId", -1]],
@@ -130,6 +165,30 @@ private _managedDroneNetIds = [];
 private _terminalVectorActiveDrones = _managedDrones select {
 	(_x getOrDefault ["mode", ""]) == "TERMINAL_VECTOR"
 };
+private _impactActiveDrones = _managedDrones select {
+	(_x getOrDefault ["mode", ""]) in ["TERMINAL_ATTACK", "TERMINAL_VECTOR"]
+};
+private _impactActiveNetIds = _impactActiveDrones apply {
+	_x getOrDefault ["netId", ""]
+};
+private _impactLocalNetIds = (_impactActiveDrones select {
+	_x getOrDefault ["isLocal", false]
+}) apply {
+	_x getOrDefault ["netId", ""]
+};
+private _impactTelemetryReadyNetIds = (_impactActiveDrones select {
+	private _impactMode = _x getOrDefault ["terminalImpactMode", ""];
+	private _impactPoint = _x getOrDefault ["lastImpactPointASL", []];
+	private _impactTelemetryAt = _x getOrDefault ["lastImpactTelemetryAt", -1];
+	private _impactTargetNetId = _x getOrDefault ["lastImpactTargetNetId", ""];
+	!(_impactMode isEqualTo "") &&
+	(_impactTelemetryAt >= 0) &&
+	!(_impactTargetNetId isEqualTo "") && {
+		!(_x getOrDefault ["lastImpactValid", false]) || {(_impactPoint isEqualType []) && {count _impactPoint >= 3}}
+	}
+}) apply {
+	_x getOrDefault ["netId", ""]
+};
 private _terminalVectorActiveNetIds = _terminalVectorActiveDrones apply {
 	_x getOrDefault ["netId", ""]
 };
@@ -147,6 +206,8 @@ private _terminalVectorTelemetryReadyNetIds = (_terminalVectorActiveDrones selec
 };
 private _terminalVectorActiveVendors = [];
 private _terminalVectorActiveSites = [];
+private _impactActiveVendors = [];
+private _impactActiveSites = [];
 
 {
 	private _vendorId = _x getOrDefault ["vendorId", ""];
@@ -159,6 +220,18 @@ private _terminalVectorActiveSites = [];
 		_terminalVectorActiveSites pushBackUnique _siteMarker;
 	};
 } forEach _terminalVectorActiveDrones;
+
+{
+	private _vendorId = _x getOrDefault ["vendorId", ""];
+	if !(_vendorId isEqualTo "") then {
+		_impactActiveVendors pushBackUnique _vendorId;
+	};
+
+	private _siteMarker = _x getOrDefault ["siteMarker", ""];
+	if !(_siteMarker isEqualTo "") then {
+		_impactActiveSites pushBackUnique _siteMarker;
+	};
+} forEach _impactActiveDrones;
 
 private _netIdCounts = createHashMap;
 {
@@ -208,6 +281,43 @@ private _vectorTelemetryMissing = (_managedDrones select {
 		}
 	}
 }) apply { _x getOrDefault ["netId", ""] };
+private _validImpactModes = ["DIRECT_BODY", "DIRECT_HULL", "DIRECT_STATIC", "GROUND_NEAR_TARGET", "OBSTRUCTION_SURFACE", "AIR_PROXIMITY", "NONE"];
+private _impactTelemetryMissing = (_impactActiveDrones select {
+	(_x getOrDefault ["isLocal", false]) && {
+		private _impactMode = _x getOrDefault ["terminalImpactMode", ""];
+		private _impactPoint = _x getOrDefault ["lastImpactPointASL", []];
+		private _impactTargetNetId = _x getOrDefault ["lastImpactTargetNetId", ""];
+		private _impactTelemetryAt = _x getOrDefault ["lastImpactTelemetryAt", -1];
+		private _impactValid = _x getOrDefault ["lastImpactValid", false];
+		(_impactMode isEqualTo "") ||
+		(_impactTargetNetId isEqualTo "") ||
+		(_impactTelemetryAt < 0) ||
+		(_impactValid && {(!(_impactPoint isEqualType [])) || {count _impactPoint < 3}})
+	}
+}) apply { _x getOrDefault ["netId", ""] };
+private _staleImpactSolutions = (_impactActiveDrones select {
+	(_x getOrDefault ["isLocal", false]) && {
+		private _impactTelemetryAt = _x getOrDefault ["lastImpactTelemetryAt", -1];
+		private _profileSummary = _x getOrDefault ["profileSummary", createHashMap];
+		private _impactTTL = _profileSummary getOrDefault ["impactSurfaceRefreshTTL", -1];
+		private _allowedStaleness = if ((_impactTTL isEqualType 0) && {_impactTTL > 0}) then {
+			(_impactTTL * 3) max 0.45
+		} else {
+			0.45
+		};
+		(_impactTelemetryAt < 0) || {time > (_impactTelemetryAt + _allowedStaleness)}
+	}
+}) apply { _x getOrDefault ["netId", ""] };
+private _invalidImpactModes = (_managedDrones select {
+	private _impactMode = _x getOrDefault ["terminalImpactMode", ""];
+	!(_impactMode isEqualTo "") && {!(_impactMode in _validImpactModes)}
+}) apply { _x getOrDefault ["netId", ""] };
+private _nonLocalImpactControllers = (_impactActiveDrones select {
+	(_x getOrDefault ["controllerRunning", false]) && {!(_x getOrDefault ["isLocal", false])}
+}) apply { _x getOrDefault ["netId", ""] };
+private _impactControllerOwnerMismatches = (_impactActiveDrones select {
+	(_x getOrDefault ["controllerRunning", false]) && {(_x getOrDefault ["controllerOwnerId", -1]) != (_x getOrDefault ["currentOwnerId", -1])}
+}) apply { _x getOrDefault ["netId", ""] };
 private _validationWarnings = [];
 
 if (_bootSafetyViolation) then {
@@ -250,6 +360,26 @@ if (_vectorTelemetryMissing isNotEqualTo []) then {
 	_validationWarnings pushBack format ["local terminal vector drones are missing telemetry fields: %1", _vectorTelemetryMissing];
 };
 
+if (_impactTelemetryMissing isNotEqualTo []) then {
+	_validationWarnings pushBack format ["local terminal impact drones are missing telemetry fields: %1", _impactTelemetryMissing];
+};
+
+if (_staleImpactSolutions isNotEqualTo []) then {
+	_validationWarnings pushBack format ["terminal impact solutions are stale beyond refresh policy: %1", _staleImpactSolutions];
+};
+
+if (_invalidImpactModes isNotEqualTo []) then {
+	_validationWarnings pushBack format ["terminal impact mode values are invalid: %1", _invalidImpactModes];
+};
+
+if (_nonLocalImpactControllers isNotEqualTo []) then {
+	_validationWarnings pushBack format ["impact controller activity detected on non-local drones: %1", _nonLocalImpactControllers];
+};
+
+if (_impactControllerOwnerMismatches isNotEqualTo []) then {
+	_validationWarnings pushBack format ["impact controller owner mismatches detected during terminal phases: %1", _impactControllerOwnerMismatches];
+};
+
 createHashMapFromArray [
 	["environment", createHashMapFromArray [
 		["registrationComplete", missionNamespace getVariable ["A3UE_FPV_registrationComplete", false]],
@@ -270,7 +400,12 @@ createHashMapFromArray [
 		["bootSafetyViolation", _bootSafetyViolation],
 		["vectorJumpViolations", _vectorJumpViolations],
 		["vectorDtViolations", _vectorDtViolations],
-		["vectorTelemetryMissing", _vectorTelemetryMissing]
+		["vectorTelemetryMissing", _vectorTelemetryMissing],
+		["impactTelemetryMissing", _impactTelemetryMissing],
+		["staleImpactSolutions", _staleImpactSolutions],
+		["invalidImpactModes", _invalidImpactModes],
+		["nonLocalImpactControllers", _nonLocalImpactControllers],
+		["impactControllerOwnerMismatches", _impactControllerOwnerMismatches]
 	]],
 	["terminalVectorSummary", createHashMapFromArray [
 		["activeCount", count _terminalVectorActiveNetIds],
@@ -282,6 +417,18 @@ createHashMapFromArray [
 		["activeVendors", _terminalVectorActiveVendors],
 		["activeSites", _terminalVectorActiveSites]
 	]],
+	["impactSummary", createHashMapFromArray [
+		["activeCount", count _impactActiveNetIds],
+		["activeNetIds", _impactActiveNetIds],
+		["localCount", count _impactLocalNetIds],
+		["localNetIds", _impactLocalNetIds],
+		["telemetryReadyCount", count _impactTelemetryReadyNetIds],
+		["telemetryReadyNetIds", _impactTelemetryReadyNetIds],
+		["activeVendors", _impactActiveVendors],
+		["activeSites", _impactActiveSites],
+		["recentDetonationCount", count _recentDetonations]
+	]],
+	["recentDetonations", _recentDetonations],
 	["registry", _registrySnapshot],
 	["managedDrones", _managedDrones]
 ]

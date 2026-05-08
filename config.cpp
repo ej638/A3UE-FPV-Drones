@@ -15,6 +15,8 @@ class CfgFunctions {
             class addFPVEventListeners { postInit = 1; };
             class fpv_buildCompatCatalog {};
             class fpv_buildDoctrine {};
+            class fpv_emptyImpactSolution {};
+            class fpv_evaluateImpactWindow {};
             class fpv_getProfile {};
             class fpv_profileValue {};
             class fpv_onLocationSpawned {};
@@ -38,6 +40,7 @@ class CfgFunctions {
             class fpv_isTargetObstructed {};
             class fpv_selectTarget {};
             class fpv_resolveTarget {};
+            class fpv_resolveImpactPoint {};
             class fpv_computeIntercept {};
             class fpv_applyGuidance {};
             class fpv_shouldEnterTerminal {};

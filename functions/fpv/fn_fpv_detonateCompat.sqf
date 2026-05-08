@@ -1,13 +1,57 @@
-params [["_uav", objNull], ["_target", objNull]];
+params [["_uav", objNull], ["_target", objNull], ["_detonationReason", ""], ["_fallbackReason", ""]];
 
 if (isNull _uav) exitWith {false};
 if (_uav getVariable ["A3UE_FPV_detonating", false]) exitWith {true};
+
+if (_detonationReason isEqualTo "") then {
+	_detonationReason = _uav getVariable ["A3UE_FPV_lastDetonationReason", "NONE"];
+};
+
+if (_fallbackReason isEqualTo "") then {
+	_fallbackReason = _uav getVariable ["A3UE_FPV_lastFallbackReason", "NONE"];
+};
+
+_uav setVariable ["A3UE_FPV_lastDetonationReason", _detonationReason, true];
+_uav setVariable ["A3UE_FPV_lastFallbackReason", _fallbackReason, true];
 
 _uav setVariable ["A3UE_FPV_detonating", true];
 _uav setVariable ["DB_fpv_isDetonating", true, true];
 
 private _vendorId = _uav getVariable ["A3UE_FPV_vendorId", ""];
 private _payloadRole = _uav getVariable ["A3UE_FPV_payloadRole", "AP"];
+private _uavPosAsl = getPosASL _uav;
+private _impactPointAsl = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
+private _impactTargetNetId = _uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""];
+private _impactValid = (_uav getVariable ["A3UE_FPV_lastImpactValid", false]) && {
+	_impactPointAsl isEqualType [] && {
+		count _impactPointAsl >= 3 && {
+			_target isEqualType objNull && {
+				(isNull _target) || {_impactTargetNetId == netId _target}
+			}
+		}
+	}
+};
+private _useImpactDelivery = _impactValid && {_detonationReason in ["DIRECT_CONTACT", "PREDICTED_IMPACT"]};
+private _deliveryPosAsl = +_uavPosAsl;
+private _deliveryDir = vectorDir _uav;
+private _deliveryUp = vectorUp _uav;
+private _deliveryMode = if (_useImpactDelivery) then {"IMPACT_POINT"} else {"UAV_POSITION"};
+private _impactMode = _uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"];
+private _impactSurfaceType = _uav getVariable ["A3UE_FPV_lastImpactSurfaceType", "none"];
+
+if (_useImpactDelivery) then {
+	private _approachVector = _impactPointAsl vectorDiff _uavPosAsl;
+	private _approachMagnitude = vectorMagnitude _approachVector;
+
+	if (_approachMagnitude > 0.01) then {
+		private _approachDir = _approachVector vectorMultiply (1 / _approachMagnitude);
+		_deliveryPosAsl = _impactPointAsl vectorDiff (_approachDir vectorMultiply 0.35);
+		_deliveryDir = _approachDir;
+	} else {
+		_deliveryPosAsl = +_impactPointAsl;
+	};
+};
+
 private _missileCandidates = switch (_payloadRole) do {
 	case "AT": { ["FPV_RPG42_AT", "R_PG32V_F", "M_NLAW_AT_F"] };
 	default { ["R_TBG32V_F"] };
@@ -52,10 +96,41 @@ if (!isNull _killer) then {
 	};
 };
 
-private _missile = createVehicle [_missileType, _uav modelToWorld [0, 0, 0]];
+private _recentDetonations = missionNamespace getVariable ["A3UE_FPV_recentDetonations", []];
+_recentDetonations pushBack createHashMapFromArray [
+	["at", time],
+	["uavNetId", _uav getVariable ["A3UE_FPV_netId", netId _uav]],
+	["targetNetId", if (isNull _target) then {_impactTargetNetId} else {netId _target}],
+	["siteMarker", _uav getVariable ["A3UE_FPV_siteMarker", ""]],
+	["vendorId", _vendorId],
+	["payloadRole", _payloadRole],
+	["profileId", _uav getVariable ["A3UE_FPV_profileId", ""]],
+	["impactMode", _impactMode],
+	["surfaceType", _impactSurfaceType],
+	["detonationReason", _detonationReason],
+	["fallbackReason", _fallbackReason],
+	["deliveryMode", _deliveryMode],
+	["impactPointASL", _impactPointAsl],
+	["uavPosASL", _uavPosAsl],
+	["deliveryPosASL", _deliveryPosAsl],
+	["controllerOwnerId", _uav getVariable ["A3UE_FPV_controllerOwnerId", -1]],
+	["linkState", _uav getVariable ["A3UE_FPV_linkState", ""]]
+];
+
+while {count _recentDetonations > 20} do {
+	_recentDetonations deleteAt 0;
+};
+
+missionNamespace setVariable ["A3UE_FPV_recentDetonations", _recentDetonations, true];
+
+private _missile = createVehicle [_missileType, _uav modelToWorld [0, 0, 0], [], 0, "CAN_COLLIDE"];
 if (isNull _missile) exitWith {false};
 
-_missile setVectorDirAndUp [vectorDir _uav, vectorUp _uav];
+if (_useImpactDelivery) then {
+	_missile setPosASL _deliveryPosAsl;
+};
+
+_missile setVectorDirAndUp [_deliveryDir, _deliveryUp];
 
 [_missile, [_killer, _instigator]] remoteExec ["setShotParents", 2];
 [_missile, true] remoteExec ["hideObjectGlobal", 2];
