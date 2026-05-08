@@ -17,6 +17,7 @@ if (_localityEhId < 0) then {
 			_vehicle setVariable ["A3UE_FPV_controllerOwnerId", -1, true];
 			_vehicle setVariable ["A3UE_FPV_fiberTrailRunning", false];
 			_vehicle setVariable ["A3UE_FPV_terminalSteeringActive", false, true];
+			_vehicle setVariable ["A3UE_FPV_terminalVectorLastUpdateAt", -1];
 		};
 	}];
 
@@ -74,6 +75,25 @@ _uav setVariable ["A3UE_FPV_cachedSignalStrength", _uav getVariable ["A3UE_FPV_s
 _uav setVariable ["A3UE_FPV_nextLinkEvalAt", 0];
 _uav setVariable ["A3UE_FPV_lastLinkEvalPosATL", getPosATL _uav];
 _uav setVariable ["A3UE_FPV_terminalSteeringActive", false, true];
+
+private _vectorModeActive = (_uav getVariable ["A3UE_FPV_mode", "IDLE"]) isEqualTo "TERMINAL_VECTOR";
+private _vectorSpeedSeed = if (_vectorModeActive) then {
+	(vectorMagnitude (velocity _uav)) * 3.6
+} else {
+	-1
+};
+
+_uav setVariable ["A3UE_FPV_terminalVectorEnteredAt", _uav getVariable ["A3UE_FPV_terminalVectorEnteredAt", -1], true];
+_uav setVariable ["A3UE_FPV_terminalVectorEntrySpeed", _uav getVariable ["A3UE_FPV_terminalVectorEntrySpeed", _vectorSpeedSeed], true];
+_uav setVariable ["A3UE_FPV_terminalVectorEntryDistance", _uav getVariable ["A3UE_FPV_terminalVectorEntryDistance", -1], true];
+_uav setVariable ["A3UE_FPV_terminalVectorCurrentSpeed", _uav getVariable ["A3UE_FPV_terminalVectorCurrentSpeed", _vectorSpeedSeed], true];
+_uav setVariable ["A3UE_FPV_terminalVectorTargetSpeed", _uav getVariable ["A3UE_FPV_terminalVectorTargetSpeed", _vectorSpeedSeed], true];
+_uav setVariable ["A3UE_FPV_terminalVectorAccelApplied", _uav getVariable ["A3UE_FPV_terminalVectorAccelApplied", -1], true];
+_uav setVariable ["A3UE_FPV_terminalVectorAlignment", _uav getVariable ["A3UE_FPV_terminalVectorAlignment", -1], true];
+_uav setVariable ["A3UE_FPV_terminalVectorDt", _uav getVariable ["A3UE_FPV_terminalVectorDt", (if (_vectorModeActive) then {0.01} else {-1})], true];
+_uav setVariable ["A3UE_FPV_terminalVectorSpeedJump", _uav getVariable ["A3UE_FPV_terminalVectorSpeedJump", -1], true];
+_uav setVariable ["A3UE_FPV_terminalVectorLastUpdateAt", _uav getVariable ["A3UE_FPV_terminalVectorLastUpdateAt", -1]];
+_uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", _uav getVariable ["A3UE_FPV_lastTerminalVectorDistance", -1]];
 
 _uav setVariable ["A3UE_FPV_controllerRunning", true];
 _uav setVariable ["A3UE_FPV_controllerOwnerId", owner _uav, true];

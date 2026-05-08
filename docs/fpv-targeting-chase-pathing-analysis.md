@@ -1,157 +1,127 @@
-# FPV Drone Targeting, Chase, and Pathing Analysis
+# FPV Drone Targeting, Chasing, Pathing, and Impact-First Recommendations
 
 Date: 2026-05-08
 
 ## Scope
 
-This document analyzes the active A3UE FPV chase stack in the current repo, with emphasis on:
+This document analyzes the active A3UE FPV runtime in the current repo, with focus on:
 
-- site-driven spawn and bootstrap
 - target acquisition and retention
-- chase guidance, movement commands, and terminal attack
-- implementation quality, gaps, and improvement options
+- chase guidance and pathing
+- terminal attack and terminal vector steering
+- self-detonation and warhead delivery
+- implementation quality and current gaps
+- architecturally sound recommendations for moving from aerial self-detonation toward impact-driven explosions
 
-The relevant runtime surface is the `A3UE_fnc_fpv_*` namespace under `functions/fpv/`.
+The active runtime namespace is `A3UE_fnc_fpv_*` under `functions/fpv/`.
 
 ## Executive Summary
 
-The current implementation is structurally solid. The spawn path is cleanly separated from the chase logic, ownership/locality is handled correctly, external player or Zeus control suspends autonomy, and terminal detonation is normalized across vendor families.
+The current implementation is structurally solid. Spawn policy, locality, vendor compatibility, target selection, target-memory loss handling, and terminal steering are all separated cleanly enough that the system can evolve without a broad rewrite.
 
-The main weakness is not the overall architecture. The weakness is that the actual chase behavior is still conservative and AI-driven:
+The observed behavior is not accidental. The current stack explicitly biases the drone toward approaching above the target and then detonating by proximity:
 
-- the controller relies almost entirely on repeated `doMove` updates rather than high-authority steering
-- the behavior-tuning keys the controller reads are not populated in the doctrine, so almost all chase tuning falls back to hard-coded defaults
-- those defaults are cautious enough that drones feel easy to outrun or sidestep
-- several parts of the loop favor stability and compatibility over aggression, especially search cadence, target loss handling, and turn responsiveness
+- the lead solver and terminal move target maintain an elevated attack point above the target
+- the fuse is driven by 3D or 2D proximity rather than physical contact or predicted impact
+- terminal vector steering improves closure, but it still feeds a proximity fuse instead of an impact-first warhead model
+- the detonation implementation deletes the UAV and spawns the warhead at the drone's current position, so the explosion occurs where the drone decides to self-detonate rather than where it physically collides
 
-The practical result matches the observed playtest outcome: drones can acquire and pursue, but they do not yet behave like fast, committed FPV strike platforms.
+That means the addon already has a credible autonomous chase controller, but its kill semantics are still airburst-first. If the design goal is to better simulate real FPV kamikaze behavior, the main work is not a new spawn system or a new controller ownership model. The main work is:
+
+1. changing what point the drone tries to hit in the final seconds
+2. changing when the fuse is allowed to fire
+3. preserving self-detonation as a fallback when impact is no longer realistic
 
 ## End-to-End Runtime Flow
 
-### 1. Registration and site-driven spawn
+### 1. Registration, spawn, and bootstrap
 
 `fn_addFPVEventListeners.sqf` initializes the FPV system during post-init. It:
 
-- ensures the catalog, doctrine, registry, and debug variables exist
+- ensures the catalog, doctrine, registry, and debug state exist
 - builds the compatibility catalog and doctrine
-- registers Antistasi event listeners for `locationSpawned` and `AIVehInit`
-- refreshes already-managed drones for JIP and late registration support
+- registers Antistasi listeners for `locationSpawned` and `AIVehInit`
+- refreshes already-managed drones so late registration and JIP clients can bootstrap active drones
 
-`fn_fpv_onLocationSpawned.sqf` is a thin wrapper that forwards Antistasi site events into `fn_fpv_managerEvaluateSite.sqf`.
+`fn_fpv_managerEvaluateSite.sqf` and `fn_fpv_managerSpawnDrone.sqf` provide the server-owned spawn path. For each eligible `Airport`, `Outpost`, or `Resource` site, the server:
 
-`fn_fpv_managerEvaluateSite.sqf` is the server-side site manager. For each active `Airport`, `Outpost`, or `Resource` site it:
+- resolves family and payload role from doctrine
+- selects a compatible UAV class
+- spawns the UAV near the site marker in the air
+- stamps all `A3UE_FPV_*` metadata on the drone
+- creates or initializes crew through Antistasi hooks when available
+- runs compatibility normalization so vendor mods do not leave the drone AI-disabled
 
-- validates the site side
-- picks a drone family using `fn_fpv_selectFamilyForSite.sqf`
-- rolls `spawnChance`
-- derives a stock count from the doctrine
-- spawns one or more drones through `fn_fpv_managerSpawnDrone.sqf`
-- stores the result in `A3UE_FPV_registry`
+`fn_fpv_onAIVehInit.sqf` then remote-execs `fn_fpv_bootstrapLocal.sqf` to all machines with the UAV as the JIP key.
 
-This is a good architectural boundary. Spawn policy lives on the server, while chase execution is pushed to whichever machine owns the UAV.
+`fn_fpv_bootstrapLocal.sqf` is the key locality boundary. It:
 
-### 2. Drone construction and bootstrap
+- installs `Local`, `Deleted`, and `MPKilled` handlers
+- restarts the controller when ownership changes
+- applies compatibility normalization again locally
+- seeds link-state cache and terminal-vector telemetry
+- starts `fn_fpv_runController.sqf` only on the machine where the UAV is local
 
-`fn_fpv_managerSpawnDrone.sqf` chooses a class by family, role, side, and site type. It then:
+This ownership model is correct and should be preserved. The active chase controller is owner-local, while spawn and registry state remain server-owned.
 
-- spawns the UAV in the air near the site marker
-- stamps all A3UE management variables on the vehicle
-- creates vehicle crew through Antistasi when available
-- runs Antistasi vehicle initialization hooks
-- runs `fn_fpv_applyCompatInit.sqf`
+### 2. State machine and control cadence
 
-The important metadata for the chase loop is:
+`fn_fpv_runController.sqf` drives the autonomous behavior. The active modes are:
 
-- `A3UE_FPV_mode`
-- `A3UE_FPV_siteMarker`
-- `A3UE_FPV_siteType`
-- `A3UE_FPV_profileId`
-- `A3UE_FPV_vendorId`
-- `A3UE_FPV_payloadRole`
-- `A3UE_FPV_linkModel`
-- `A3UE_FPV_targetNetId`
+- `IDLE`
+- `SEARCHING`
+- `TRACKING`
+- `LOST_TARGET`
+- `TERMINAL_ATTACK`
+- `TERMINAL_VECTOR`
 
-`fn_fpv_onAIVehInit.sqf` then remote-execs `fn_fpv_bootstrapLocal.sqf` to all machines with the drone as the JIP key.
+Every loop iteration does four high-level things:
 
-`fn_fpv_bootstrapLocal.sqf` is one of the better pieces of the implementation. It:
+1. refresh or reuse cached EW/link state through `fn_fpv_cacheLinkState.sqf`
+2. suspend autonomy if the drone is externally controlled by player, UAV terminal, or Zeus
+3. route behavior by the current mode
+4. sleep until the next guidance, target-scan, or link-eval tick
 
-- installs a `Local` event handler so the controller restarts when ownership changes
-- installs `Deleted` and `MPKilled` cleanup handlers
-- only starts the controller where the UAV is local
-- applies compat normalization again locally before running the controller
+Important details:
 
-That gives the project a correct ownership model: one active controller per drone, local to the machine that owns the vehicle AI.
+- link evaluation is cached at about `0.35s` and forced early if the UAV moved more than `150m`
+- externally controlled drones are forced back to `IDLE` and lose autonomous target state
+- radio-denied drones fall back to hold-pattern behavior rather than suicide blindly
+- `TERMINAL_VECTOR` restores crew AI if the controller exits that state
 
-### 3. Compatibility normalization
+The state machine is not the problem. It already has the right extension points for impact-first behavior.
 
-`fn_fpv_applyCompatInit.sqf` exists because the external FPV mods were built around player-operated drones rather than autonomous AI drones. The repo memory and the vendor addon code confirm that the vendor init functions disable AI for at least ArmaFPV, fpv_ua, and KVN.
+## Targeting, Chasing, and Pathing
 
-This function re-enables AI and restores family-specific state. It also queues a delayed second normalization pass after about `1.25` seconds to override vendor init logic that fires after spawn.
+### 3. Search behavior
 
-Without this step, the rest of the chase system would not work reliably.
+Search behavior is implemented by `fn_fpv_holdPattern.sqf`.
 
-## The Chase and Pathing Process
+This is not a waypoint graph or obstacle-aware route planner. The search model is intentionally simple:
 
-### 4. State machine overview
-
-`fn_fpv_runController.sqf` drives the entire chase loop. The controller runs while:
-
-- the UAV is alive
-- the UAV is local
-- `A3UE_FPV_controllerRunning` is true
-
-Each loop iteration does the following in order:
-
-1. Resolve the current mode.
-2. Evaluate link state with `fn_fpv_evaluateLinkState.sqf`.
-3. Suspend autonomy if the drone is under external player/UAV terminal/Zeus control.
-4. If radio-denied, hold pattern and go idle.
-5. Otherwise execute one of four modes:
-   - `IDLE`
-   - `SEARCHING`
-   - `TRACKING`
-   - `TERMINAL_ATTACK`
-
-The loop cadence is mode-dependent:
-
-- `IDLE`: about `1.0s`
-- `SEARCHING`: about `1.0s` when no target is found, `0.1s` after a target is acquired
-- `TRACKING`: about `0.1s`
-- `TERMINAL_ATTACK`: about `0.05s` initially, then about `0.02s`
-
-### 5. Search behavior
-
-`IDLE` and no-target `SEARCHING` both use `fn_fpv_holdPattern.sqf`.
-
-This is not waypoint-based pathing in the classic Arma sense. There are no persistent waypoints and no waypoint graph. The system uses a periodic `doMove` toward a temporary point.
-
-The hold pattern logic:
-
-- chooses a center from the site marker if available, otherwise the UAV position
-- sets a search height based on site type
+- choose a center from the site marker, otherwise the UAV position
+- choose a search height by site type
   - `Airport`: `45m`
   - `Outpost`: `35m`
   - `Resource`: `25m`
-- chooses a hold radius based on site type
+- choose a hold radius by site type
   - `Airport`: `300m`
   - `Outpost`: `180m`
   - `Resource`: `120m`
-- runs at `NORMAL` speed mode
-- issues a fresh `doMove` only every `5` seconds
+- every `5` seconds, issue a new random `doMove` point on that ring
 
-That means the baseline search behavior is a slow randomized orbit around the site, not an aggressive hunt.
+This is intentionally coarse, cheap, and compatible with multiple UAV families. It works well enough as a patrol or waiting behavior, but it is not meant to look like terminal attack logic.
 
-### 6. Target acquisition
+### 4. Target acquisition
 
-`fn_fpv_selectTarget.sqf` performs target search. It scans two areas:
+`fn_fpv_selectTarget.sqf` is the owning target-selection function.
 
-- a site-centered radius driven by site type
-  - `Airport`: `700m`
-  - `Outpost`: `500m`
-  - `Resource`: `350m`
-- a UAV-centered local radius of `250m`
+The function builds a candidate pool from two overlapping searches:
 
-Candidate classes are:
+- a site-centered scan radius from doctrine or site fallback
+- a UAV-centered local scan radius
+
+Candidates are drawn from:
 
 - `Man`
 - `LandVehicle`
@@ -159,447 +129,464 @@ Candidate classes are:
 - `Ship`
 - `StaticWeapon`
 
-The function then normalizes and filters candidates:
+It then filters and normalizes candidates:
 
-- passengers are normalized to their parent vehicle
-- self-targeting is rejected
-- managed A3UE drones are rejected
-- dead candidates are rejected
-- empty vehicles are rejected
+- embarked infantry are normalized to their parent vehicle
+- self and other managed FPV drones are rejected
+- empty non-static vehicles are rejected
+- dead targets are rejected
+- optional lost-target cone filtering can be applied during reacquisition
 
-Side resolution is derived from unit group side for infantry, or from commander, driver, or crew for vehicles.
+Scoring is payload-aware:
 
-Scoring is simple and readable:
+- `AT` prefers tanks, APCs, vehicles, ships, and air targets, and penalizes infantry heavily
+- `AP` prefers infantry first, then cars and static weapons, and penalizes heavy armor
+- `RECON` still prefers infantry and softer targets, with a smaller tank penalty
 
-- base score is proximity
-- `AT` favors heavy armor and punishes infantry
-- `AP` favors infantry, cars, and static weapons
-- `RECON` also favors infantry and lighter targets
+The function also includes target stickiness and a local line-of-sight or obstruction penalty by calling `fn_fpv_isTargetObstructed.sqf`.
 
-One important gameplay detail: when `teamPlayer` exists and differs from the site side, the hostile-side set collapses to `[teamPlayer]`. In Antistasi, that makes this system strongly player-faction-centric rather than a general hostile-selector.
+Two important design notes:
 
-### 7. Target retention
+- target selection is already better than a naive nearest-target query because it includes sticky target memory and obstruction penalties
+- hostility is intentionally biased toward `teamPlayer` when available, which fits Antistasi's player-centered threat model but makes the drone logic less general as a battlefield AI
 
-The chosen target is stored as `A3UE_FPV_targetNetId`. `fn_fpv_resolveTarget.sqf` converts that netId back into an object and rejects null or dead targets.
+### 5. Target retention and lost-target recovery
 
-There is no real target memory beyond that single object reference. If the target dies, goes null, or moves beyond the drop distance, the controller clears the target and goes back to `SEARCHING`.
+The controller stores the current target as a netId and resolves it through `fn_fpv_resolveTarget.sqf`.
 
-The default drop distance is `900m`, again read from the profile layer but currently supplied by fallback defaults.
+When a target breaks track or dies, the drone does not instantly forget everything. `fn_fpv_runController.sqf` stores:
 
-### 8. Intercept calculation
+- last known target netId
+- last known target position in ASL
+- last known target velocity
+- the expiry time for the current lost-target memory window
 
-`fn_fpv_computeIntercept.sqf` uses a quadratic lead-pursuit solver. Conceptually it solves:
+`fn_fpv_runLostTarget.sqf` uses that information to:
 
-$$
-\text{InterceptPos} = \text{TargetPos} + (\text{TargetVelocity} \times t)
-$$
+- predict a short forward position from the stored velocity
+- climb to a lost-target search altitude
+- guide the UAV toward that predicted point
+- run a tighter cone-based reacquisition scan around the last known direction of travel
 
-The calculation uses:
+This is a meaningful strength in the current implementation. The drone already has a useful intermediate predatory state between clean tracking and blind search.
 
-- UAV position and velocity
-- target position and velocity
-- an assumed chase speed
+### 6. Intercept calculation
 
-The chase speed defaults are role-based:
+`fn_fpv_computeIntercept.sqf` uses a lead-pursuit solver based on relative position, relative velocity, and an assumed chase speed.
 
-- `AT`: `90`
-- `RECON`: `80`
-- `AP`: `85`
+In simplified form, the solver is computing an intercept point such that:
 
-It then clamps the predicted intercept time to a default `maxLeadTime` of `3` seconds and adds a default vertical attack offset of `12m` above the target.
+- the target position is projected forward by the chosen time-to-impact
+- the time-to-impact is limited by adaptive lead caps derived from the current doctrine profile
 
-This is mathematically sound as a generic lead solver. The practical limitation is that the solver output is still fed into Arma AI flight through `doMove`, so the drone does not directly steer like a missile. It only receives a moving destination point.
+This is good control architecture for the problem. The main issue is not the lead solver itself. The issue is what the solver does with the vertical axis.
 
-### 9. Tracking guidance
+After computing the intercept, the function forces the intercept altitude to remain at least `attackHeightASL` above the target:
 
-`fn_fpv_applyGuidance.sqf` translates the intercept into actual movement orders. This is the main chase pathing implementation.
+- family defaults in doctrine currently set `attackHeightASL` to `8m`
+- terminal fallback uses `6m` in `fn_fpv_runTerminal.sqf`
 
-It does not use waypoints, vector steering, or any custom flight controller. Instead it does the following:
+That is the first hard reason the drone prefers aerial detonation over impact. The computed intercept is not the target's body, hull, roof, ground contact point, or nearby object. It is an elevated attack point.
 
-- converts intercept ASL to ATL
-- uses the intercept height as the tracking flight height, with a floor of `10m`
-- enables AI and forces:
-  - `CARELESS` behavior
-  - `BLUE` combat mode
-  - `FULL` speed mode
-- applies a role-based default tracking speed
-  - `AT`: `95`
-  - `RECON`: `85`
-  - `AP`: `90`
-- throttles `doMove` updates so a new move order is only issued when:
-  - the target point moved more than `15m`, or
-  - `0.25s` elapsed since the last move update
+### 7. Tracking pathing
 
-This is the most important reason the drones feel soft. The controller updates often enough to chase, but not aggressively enough to produce hard interception turns.
+`fn_fpv_applyGuidance.sqf` turns the intercept into flight instructions during `TRACKING`.
 
-### 10. Terminal transition and terminal pathing
+The current pathing model is intentionally conservative and AI-driven:
 
-`fn_fpv_shouldEnterTerminal.sqf` moves the drone into `TERMINAL_ATTACK` when the target is close enough.
+- convert the intercept ASL position to ATL
+- set `CARELESS`, `BLUE`, and `FULL`
+- apply `flyInHeight` using the intercept altitude with a profile floor
+- apply `forceSpeed`
+- issue a fresh `doMove` only when the target point changed enough or enough time has passed
 
-Default terminal gates are:
+This is not true geometric path planning. In practice it is repeated destination-point steering.
 
-- `AT`: `120m` 3D or `60m` 2D
-- `RECON`: `85m` 3D or `40m` 2D
-- `AP`: `90m` 3D or `45m` 2D
+That choice is reasonable for coarse chase behavior because it:
 
-`fn_fpv_runTerminal.sqf` then tightens the movement loop:
+- remains compatible with multiple vendor UAVs
+- keeps the AI crew and engine flight model doing most of the work
+- avoids overusing high-cost custom steering outside the terminal window
 
-- default height offset becomes `6m` above the target
-- `FULL` speed mode remains active
-- default terminal speed becomes:
-  - `AT`: `110`
-  - `RECON`: `95`
-  - `AP`: `100`
-- `doMove` is refreshed when the target point shifts more than `5m`, or every `0.1s`
+It is not enough by itself to produce a true impact dive, but it is fine as the long-range guidance layer.
 
-`fn_fpv_shouldDetonateNow.sqf` decides when to trigger the final strike. Default detonation windows are:
+### 8. Terminal attack handoff
 
-- `AT`: `18m` 3D or `9m` 2D
-- `RECON`: `12m` 3D or `6m` 2D
-- `AP`: `14m` 3D or `7m` 2D
-- with a default vertical window of `12m`
+`fn_fpv_shouldEnterTerminal.sqf` triggers `TERMINAL_ATTACK` based on distance gates.
 
-Finally, `fn_fpv_detonateCompat.sqf` converts the drone into a role-appropriate ammo object, unregisters it, and triggers the payload without relying on a physical collision.
+The current doctrine-derived gates are large by design. Depending on site, family, and role, `terminalGateDistance` is roughly in the `68m` to `100m` range, with a derived 2D gate at about `55%` of that value.
 
-That terminal detonation design is good. The chase problem is not the final hit logic. The chase problem is getting the drone onto a convincing final line.
+Once terminal mode begins, `fn_fpv_runTerminal.sqf` tightens the movement loop:
 
-## What "Waypointing" and "Pathing" Actually Mean Here
+- compute a terminal intercept with the same lead solver
+- use a smaller but still positive final height offset
+- continue using AI `doMove`, `flyInHeight`, and `forceSpeed`
+- refresh movement more often than in `TRACKING`
 
-The current project does not implement a real waypointing system for drones.
+This is still not impact-first. It is a faster, closer, more aggressive version of the same elevated pursuit model.
 
-In practice, pathing is this:
+### 9. Terminal vector steering
 
-- search mode: occasional random `doMove` orders around a site center
-- tracking mode: repeated `doMove` orders toward a predicted intercept point
-- terminal mode: repeated `doMove` orders toward a tighter point near the target
+Inside `terminalSteeringDistance`, the controller hands off to `fn_fpv_runTerminalVector.sqf`.
 
-There are no:
+This is the most aggressive guidance stage in the addon. It is owner-local and uses direct steering primitives:
 
-- persistent waypoints
-- path graphs
-- obstacle-aware pursuit paths
-- last-known-position search cones
-- direct velocity or nose-vector steering
-- high-authority terminal dive controller
+- compute a terminal lead point
+- build an aim vector from UAV to lead point
+- amplify the vertical component through `terminalVerticalGain`
+- blend current direction and desired direction based on alignment
+- compute a speed budget with doctrine-authored acceleration and deceleration limits
+- call `setVectorDirAndUp` and `setVelocity`
+- disable crew `PATH`, `FSM`, and `AUTOCOMBAT` while vector steering is active
 
-So the UAV AI is doing most of the real flight behavior. A3UE is mainly supplying moving destinations, speed hints, and state transitions.
+This is a major improvement over pure `doMove` and is why the current system already looks better than the older chase implementation described in the existing plan docs.
 
-## Why the Drones Feel Slow and Easy to Evade
+However, even this stage is still centered on a lead point above the target and still feeds the same proximity-based fuse. So terminal vector control improves closure quality, but it does not change the kill model from airburst-first to impact-first.
 
-### 1. Behavior tuning is mostly running on fallback defaults
+## How Self-Detonation Works Today
 
-The controller reads a profile for values such as:
+### 10. Detonation gating
 
-- `trackingSpeed`
-- `terminalSpeed`
-- `searchRadius`
-- `localSearchRadius`
-- `trackingMoveDelta`
-- `terminalMoveDelta`
-- `maxLeadTime`
-- `attackHeightASL`
-- `terminalGateDistance`
-- `detonationDistance`
-- `dropTargetDistance`
+`fn_fpv_shouldDetonateNow.sqf` decides whether the drone should explode.
 
-But `fn_fpv_buildDoctrine.sqf` currently builds site doctrine for:
+The logic is currently proximity-based and role-tuned:
 
-- spawn chance
-- stock counts
-- family weights
-- role weights
-- class pools
+- use total 3D distance to the target
+- use 2D horizontal distance to the target
+- use a vertical separation window
+- return true if either:
+  - the 3D distance is inside `detonationDistance`, or
+  - the horizontal distance is inside `detonationDistance2D` and the height separation is inside `detonationVerticalWindow`
 
-It does not populate the behavior-tuning keys above. As a result, almost all chase behavior is currently driven by hard-coded fallback values in the controller helpers.
+This means the fuse does not currently care about:
 
-That is a real implementation gap. The architecture expects doctrine/profile-driven behavior, but the shipped doctrine only controls spawn composition.
+- whether the UAV is actually descending into the target
+- whether it is still closing rather than sliding laterally or overshooting
+- whether there is a predicted physical contact in the next few frames
+- whether it is above the target, next to the target, or moving away from the target
 
-### 2. The chase layer underdrives some airframes
+If the drone is close enough, it is allowed to explode.
 
-The external vendor base classes show these representative max speeds:
+### 11. Warhead delivery
 
-| Family | External base max speed |
-| --- | --- |
-| ArmaFPV | `190` |
-| KVN | `145` |
-| fpv_ua | `120` |
+`fn_fpv_detonateCompat.sqf` performs the actual strike.
 
-Against that, the A3UE defaults are roughly:
+The sequence is:
 
-| Phase | AT | AP | RECON |
-| --- | --- | --- | --- |
-| Tracking | `95` | `90` | `85` |
-| Terminal | `110` | `100` | `95` |
+1. guard against duplicate detonation with `A3UE_FPV_detonating`
+2. choose a compatible ammo class by payload role
+3. unregister the drone from the server registry
+4. preserve KVN fiber visual state when applicable
+5. clear or restore captive state on the killer if needed
+6. create the ammo object at the drone's current world position
+7. align the ammo object's vector direction and up vector to the UAV
+8. delete the UAV and its crew
+9. trigger the ammo
 
-For fpv_ua this is close to the airframe limit. For ArmaFPV and KVN it leaves a meaningful amount of performance unused.
+This is intentionally compatibility-friendly and avoids requiring real collision with the target. It also means the explosion happens where the drone chose to self-detonate, not where the drone physically impacted.
 
-So even before considering turn logic, the system is conservative on raw speed for at least two of the three supported families.
+That is the second hard reason the current effect feels like a self-detonating airburst rather than a kamikaze hit.
 
-### 3. Turn authority is low because guidance is `doMove`-only
+## Why Drones Detonate Above the Player
 
-This is the largest gameplay factor.
+The current above-target behavior is produced by several layers reinforcing the same outcome.
 
-The controller never directly controls:
+### Root cause 1: elevated intercept geometry
 
-- heading
-- bank
-- acceleration vector
-- desired velocity vector
-- high-rate terminal correction
+Both `fn_fpv_computeIntercept.sqf` and `fn_fpv_runTerminal.sqf` keep the final approach point above the target.
 
-It only sends periodic `doMove` targets and lets the UAV AI solve the rest. That is safe and compatible, but it produces broad turns and delayed corrections. Against a player who changes direction laterally, the drone can look like it is following rather than cutting off.
+That means the guidance stack is not aiming for:
 
-### 4. Search mode is intentionally relaxed
+- the infantry body center
+- the vehicle hull or roof surface
+- the terrain point at the target's feet
+- a nearby object surface if direct line is obstructed
 
-The no-target loop does not hunt aggressively. It:
+It is aiming for a positive altitude offset above the target.
 
-- scans only once per second
-- repositions the hold target only once every five seconds
-- uses a random perimeter point rather than a sector sweep, spiral, or last-known-position search
+### Root cause 2: fuse semantics are proximity-only
 
-That makes the drone easy to read and easy to bait through a site’s search ring.
+`fn_fpv_shouldDetonateNow.sqf` has no concept of contact, closure rate, or impact prediction. If distance thresholds are met, the drone may explode immediately.
 
-### 5. There is no lost-target behavior
+This is especially permissive because:
 
-When tracking fails, the controller clears the target and drops back to generic `SEARCHING`. It does not:
+- the derived `detonationDistance2D` is about half of `detonationDistance`
+- the default `detonationVerticalWindow` is `10m` to `12m`
+- the positive attack-height bias already places the UAV inside that vertical band during the final seconds
 
-- preserve the last good intercept area
-- search a local cone around the last known heading
-- climb for reacquisition
-- tighten to a short-term aggressive search state
+### Root cause 3: terminal vector still feeds the same fuse
 
-That makes evasion too binary. Once the player creates enough lateral or distance separation, the drone becomes forgetful.
+`fn_fpv_runTerminalVector.sqf` is better steering, not different strike semantics. It can reduce misses, but it still chases an elevated lead point and hands control to the same proximity fuse.
 
-### 6. Search radius, drop distance, and terminal thresholds are not coordinated
+### Root cause 4: the explosion is spawned at UAV position
 
-The defaults are individually reasonable, but they are not yet behaving like a single tuned pursuit model. For example:
+Even if the drone visually looks close to the target, `fn_fpv_detonateCompat.sqf` deletes the UAV and spawns the warhead at the UAV position. There is no final inertial carry-through to a collision point.
 
-- site search is `350` to `700m`
-- local search is `250m`
-- target drop is `900m`
-- terminal gate is `85` to `120m`
+### Root cause 5: no impact proxy or surface selection exists
 
-This can produce awkward edge cases where the drone is allowed to keep a target long after the site-centered search logic would no longer reacquire it, but still lacks the steering authority to finish the chase cleanly.
+There is currently no function that resolves a final impact point such as:
 
-### 7. Link-state evaluation is on the hot path
+- closest vehicle-hull point
+- target pelvis or torso point
+- ground point at the target's feet
+- obstacle surface nearest the target if line of sight is blocked
 
-`fn_fpv_evaluateLinkState.sqf` is called every controller iteration, including in high-frequency hot modes. It performs:
-
-- terrain tests
-- surface intersection tests
-- nearby object scans for retranslators and jammers
-
-That is not the source of the slow turning you observed, but it is a quality concern. It raises the cost of increasing control-loop frequency, which is one of the most natural ways to make the drones more responsive.
+The controller knows how to select a target and how to detect occlusion penalties, but it does not know how to choose a concrete physical impact surface.
 
 ## Quality Review
 
 ### What is good
 
-The implementation has several strong design decisions:
+The current implementation has several strong qualities:
 
-- locality is handled correctly through `fn_fpv_bootstrapLocal.sqf`
-- spawn and chase responsibilities are cleanly separated
-- the four-state controller is simple and extendable
-- external-control suspension is the right safety behavior
-- vendor compatibility is treated explicitly instead of pretending the families are identical
-- terminal detonation is normalized and does not depend on physics collision luck
+- server-side spawn management and owner-local control are separated correctly
+- locality transfer is handled through `Local` event bootstrap rather than assuming ownership is static
+- vendor compatibility is explicit instead of hidden behind brittle assumptions
+- the doctrine and profile layer is real and is now populated with behavior data, not just spawn weights
+- lost-target recovery is present and materially improves pursuit behavior
+- terminal vector steering already exists as a dedicated high-authority endgame stage
+- link-state evaluation is cached rather than recomputed on every high-rate steering tick
+- debug snapshot support already exposes useful tuning and validation data
 
-Those are real strengths. The repo is not suffering from a broken architecture. It is suffering from an incomplete behavior layer.
+In short, the architecture is not the problem. It is already a good base for an impact-first redesign.
 
-### Gaps and issues that should be addressed
+### Gaps and issues that matter for impact-first behavior
 
-#### 1. Doctrine/profile behavior data is incomplete
+#### 1. Impact semantics are missing entirely
 
-This is the clearest implementation gap.
+The controller chooses a target object, not a final impact point on that object or near it. There is no impact-resolution layer between target selection and fuse logic.
 
-The codebase has a profile abstraction, but behavior values are not actually being authored in the doctrine. That makes the controller appear configurable while still behaving as a mostly hard-coded system.
+This is the biggest functional gap relative to the observation.
 
-#### 2. The guidance model is too passive for FPV strike behavior
+#### 2. The vertical attack model is hard-coded toward overflight
 
-Repeated `doMove` is enough for proof-of-function, but not enough for convincing strike-drone aggression. It yields broad turns, late corrections, and pursuit behavior that feels like helicopter AI rather than FPV attack logic.
+Positive `attackHeightASL` defaults and terminal height offsets are still embedded in the current profile contract. That makes aerial approach the normal case, not the exception.
 
-#### 3. Target selection lacks LOS and tactical context
+#### 3. The fuse is too permissive for close-above cases
 
-Current scoring does not consider:
+The current OR condition in `fn_fpv_shouldDetonateNow.sqf` allows detonation on distance alone. It does not require:
 
-- line of sight
-- recent visibility
-- target speed
-- target heading relative to drone heading
-- obstruction cost
+- positive closing velocity
+- a short predicted time-to-contact
+- active descent when above the target
+- physical contact or near-contact with a chosen impact point
 
-That makes selection stable and cheap, but not especially smart.
+#### 4. No direct-impact fallback target exists for infantry or ground strike
 
-#### 4. Target hostility is biased toward `teamPlayer`
+Real FPV drones often do not need a perfect body hit. Hitting the ground, curb, wall, or vehicle surface next to the target is still a mission success. The current system has no explicit representation of that idea.
 
-This may be intentional for Antistasi gameplay, but it is still a real design constraint. When `teamPlayer` is present, drones become specialized anti-player-faction hunters instead of general hostile-site drones.
+#### 5. Obstruction knowledge is not reused for warhead placement
 
-If that is intended, the behavior is fine. If the design goal is broader battlefield threat response, this should be revisited.
+`fn_fpv_isTargetObstructed.sqf` can already tell the controller that line of sight is blocked, but that information is only used as a selection penalty. It is not used to choose an alternate strike surface.
 
-#### 5. The hot path is expensive enough to block finer control updates
+#### 6. The current self-detonation path is all-or-nothing
 
-Because link-state evaluation sits in the same loop as chase guidance, increasing chase responsiveness also increases EW and raycast cost. The system needs better separation between high-rate movement control and lower-rate link evaluation.
+Once detonation is approved, the UAV is removed and the ammo is triggered. There is no distinction between:
 
-#### 6. There is no dedicated validation harness for chase behavior
+- direct impact achieved
+- predicted impact within a few frames
+- fallback proximity burst because the drone is about to overshoot
+- fallback burst because control or guidance quality collapsed at the last instant
 
-The codebase has debug support and clear runtime state, but no behavior-focused automated validation for:
+That makes debugging and future tuning harder than it needs to be.
 
-- acquisition timing
-- time-to-impact
-- reacquisition after jinks
-- ownership handoff while tracking
+#### 7. Impact-first additions must be controlled for performance
 
-That means future tuning will rely heavily on playtesting unless a lightweight harness is added.
+The current chase stack is relatively efficient because expensive geometric reasoning is mostly limited to selection, obstruction checks, and cached EW evaluation. If impact prediction is added, it should be restricted to terminal phases so the repo does not trade realism for runaway per-frame cost.
 
 ## Architecturally Sound Recommendations
 
-The right path is not a broad rewrite. The right path is to preserve the current ownership model and state machine, then strengthen the behavior layer in stages.
+The right design is not to remove self-detonation entirely. The right design is to make self-detonation a fallback while the default behavior tries to achieve a direct impact on the target, vehicle, ground, or nearby object.
 
-### 1. Complete the profile/doctrine behavior layer first
+### Recommendation 1: Add an explicit impact-point resolver
 
-Highest-value, lowest-risk improvement:
+Create a new terminal helper that resolves a concrete aimpoint, not just a target object.
 
-- extend `fn_fpv_buildDoctrine.sqf` so each site profile also carries behavior keys
-- optionally split doctrine into two explicit submaps:
-  - `spawn`
-  - `behavior`
-- keep `profileId` meaningful by using it to resolve behavior presets rather than only tagging the UAV
+Suggested resolution order:
 
-At minimum, define and tune these keys per family or per site-role profile:
+1. direct target surface or body point
+2. vehicle hull or roof point closest to the incoming vector
+3. ground point at or just ahead of the target's feet or wheels
+4. nearby obstruction or cover surface adjacent to the target
 
-- `trackingSpeed`
-- `terminalSpeed`
-- `searchHeightAGL`
-- `searchRadius`
-- `localSearchRadius`
-- `trackingMoveDelta`
-- `terminalMoveDelta`
-- `maxLeadTime`
-- `attackHeightASL`
-- `terminalGateDistance`
-- `terminalGateDistance2D`
-- `detonationDistance`
-- `detonationDistance2D`
-- `dropTargetDistance`
+This would let the controller distinguish between:
 
-This change is foundational because every later recommendation depends on having an actual authored behavior model instead of implicit fallbacks.
+- direct impact on infantry
+- direct impact on a vehicle
+- deliberate ground strike near infantry
+- deliberate wall or cover strike when the target ducks behind an object
 
-### 2. Tune family aggression against real airframe capability
+Why this is sound:
 
-Current behavior flattens the families too much. The external classes are not equal, so the controller should stop treating them as if they are.
+- it fits naturally between `resolveTarget` and terminal guidance
+- it does not require changing the spawn or locality model
+- it gives the fuse a concrete impact reference instead of a generic target center
 
-Suggested direction:
+Performance note:
 
-- ArmaFPV: highest aggression, highest track and terminal speed, fastest update cadence
-- KVN: mid-to-high aggression, good speed, slightly more conservative terminal dive because of the fiber-themed presentation
-- fpv_ua: lower top speed, but still more responsive than current tracking defaults
+- keep the expensive surface-resolution logic out of `SEARCHING` and most of `TRACKING`
+- resolve or refresh impact points only during `TERMINAL_ATTACK` and `TERMINAL_VECTOR`, or when the target or obstruction state changes materially
 
-The important point is not the exact numbers. The important point is that family differences should be authored deliberately rather than emerging accidentally from vehicle class choice alone.
+### Recommendation 2: Replace fixed positive attack height with a distance-shaped descent profile
 
-### 3. Separate coarse navigation from high-rate terminal steering
+Do not force a positive `attackHeightASL` all the way into the target.
 
-Keep the existing design for coarse navigation:
+Recommended model:
 
-- `SEARCHING`: AI `doMove` is fine
-- long-range `TRACKING`: AI `doMove` is acceptable
+- `TRACKING`: allow positive altitude offset for stable pursuit and obstacle clearance
+- `TERMINAL_ATTACK`: progressively reduce that offset as distance closes
+- `TERMINAL_VECTOR`: drive toward the chosen impact point with an explicit minimum descent component instead of a positive altitude floor
 
-But add a higher-authority terminal layer for the final strike window. For example:
+That preserves the good part of the current guidance stack while removing the bias that causes airburst over infantry.
 
-- use AI `doMove` outside a larger distance band
-- switch to a dedicated owner-local terminal steering function inside roughly `60m` to `100m`
-- drive the final dive with direct vector or velocity control instead of only moving the destination point
+Performance note:
 
-This is the single most effective architectural change if the goal is "harder to sidestep" rather than just "numerically faster".
+- this is mostly a math and profile change, not a query-heavy change
+- it should be cheap compared to adding new per-frame geometry scans
 
-It also limits risk because the more invasive steering logic is contained to the last part of the engagement.
+### Recommendation 3: Refactor the fuse from proximity-first to impact-first
 
-### 4. Replace fixed lead clamping with adaptive lead
+`fn_fpv_shouldDetonateNow.sqf` should become a layered decision instead of a single distance gate.
 
-The current fixed `maxLeadTime = 3` is too blunt.
+Suggested decision order:
 
-Better model:
+1. direct contact or predicted impact within a very short time-to-contact window
+2. impact-point proximity with positive closing velocity and descent when required
+3. fallback proximity burst if impact is no longer realistic but the drone is still inside an effective kill envelope
 
-- longer allowable lead at longer range
-- shorter lead near the terminal window
-- optional reduction when target angular change is high
+The fuse should inspect at least:
 
-In practice, the drone should not keep the same lead cap when the target is `600m` away and when it is `60m` away.
+- closing dot product between velocity and target or impact-point direction
+- short predicted time-to-contact
+- altitude above ground and altitude above the impact point
+- whether the drone is moving toward or away from the impact solution
 
-This should stay inside `fn_fpv_computeIntercept.sqf`, keeping the rest of the architecture unchanged.
+This change is the single most important fix for the observed problem.
 
-### 5. Add a `LOST_TARGET` state instead of falling straight back to generic search
+### Recommendation 4: Keep `fn_fpv_detonateCompat.sqf` as the fallback delivery path, not the primary intent
 
-Recommended new state between `TRACKING` failure and normal `SEARCHING`:
+The compatibility detonation helper is still valuable because Arma collision behavior is not reliable enough to trust alone across all UAV families.
 
-- preserve last known target position and velocity
-- search that area for a short time window
-- tighten local search radius around the last-known point
-- optionally climb slightly for reacquisition
+Use it in these situations:
 
-This makes evasion less binary and gives the drones a more predatory feel without requiring global redesign.
+- direct impact is confirmed or predicted within the immediate next instant
+- the drone is about to overshoot but remains inside an effective kill radius
+- the target is behind thin cover and a nearby wall or ground strike is acceptable
+- control quality collapses during the final armed window and a guaranteed fallback burst is preferable to a harmless fly-through
 
-### 6. Increase chase update authority without raising total hot-path cost
+This preserves compatibility while changing the behavior goal from self-detonate near target to impact if possible, otherwise self-detonate intelligently.
 
-To make the drones turn harder, the controller needs more frequent movement correction. But that should not mean running the entire EW/link-state stack at the same higher rate.
+### Recommendation 5: Add phase-specific impact modes by target class
 
-Recommended split:
+One impact policy will not be equally good for infantry, vehicles, and statics.
 
-- movement guidance: high rate
-- link-state evaluation: cached or lower rate
-- expensive environment queries: evented or TTL-based
+Recommended defaults:
 
-For example:
+- `Man`: aim for torso or pelvis if unobstructed, otherwise strike ground at feet or just ahead of movement vector
+- `LandVehicle`: aim for hull or roof point closest to approach vector; if geometry is unreliable, aim for vehicle centerline at roof or hood height and fuse only on confirmed closure
+- `StaticWeapon`: aim for weapon center or crew position, otherwise ground beside emplacement
+- `Air`: keep fallback proximity burst semantics longer, because direct collision with another air target is less reliable and may not be worth the risk
 
-- cache link state for `0.25s` to `0.5s`
-- invalidate on major position change, retranslator change, or jammer presence change
-- let tracking and terminal guidance run more frequently than EW evaluation
+This keeps the behavior believable without overfitting every case to the exact same geometry rule.
 
-### 7. Tighten the geometry of the final attack
+### Recommendation 6: Reuse obstruction data to choose fallback strike surfaces
 
-The current tracking-to-terminal transition changes vertical behavior from roughly `12m` above target to `6m` above target. A more deliberate attack profile would improve perceived aggression.
+The current system already computes terrain and object obstruction through `fn_fpv_isTargetObstructed.sqf`.
 
-Recommended approach:
+Use that information in the terminal phase to decide whether the best strike is:
 
-- use a higher offset during far tracking
-- reduce offset continuously with distance rather than switching abruptly
-- keep the final terminal line very direct
+- direct target impact
+- a wall, vehicle side, or rooftop face
+- terrain at the base of the target or object
 
-That should reduce the current wide, arcing feel of the approach.
+That would make the drones feel much more purposeful when a player ducks behind a low wall or near a vehicle, because the drone can still choose an explosion point that makes tactical sense.
 
-### 8. Improve target quality, not just chase speed
+### Recommendation 7: Add doctrine keys specifically for impact-first behavior
 
-Add lightweight tactical quality to `fn_fpv_selectTarget.sqf`:
+The current doctrine is good enough to author this behavior cleanly. Add explicit keys rather than overloading older ones.
 
-- LOS or occlusion penalty
-- score bonus for recently seen targets
-- score bonus for targets moving away from site or toward friendly assets
-- target stickiness so the drone does not churn between near-equal candidates
+Suggested additions:
 
-This will improve both realism and practical lethality.
+- `terminalImpactMode`
+- `terminalImpactOffsetNear`
+- `terminalImpactOffsetFar`
+- `terminalDescentMinRate`
+- `detonationMaxTimeToContact`
+- `detonationMinClosingDot`
+- `detonationMaxAltitudeAGL`
+- `impactFallbackRadius`
+- `impactFallbackGroundOffset`
+- `impactProbeDistance`
+- `impactAbortTimeout`
 
-## Suggested Improvement Order
+This keeps the design data-driven and lets different families or site types behave differently without code branching everywhere.
 
-If the goal is to make the drones meaningfully more aggressive without destabilizing the whole addon, the best order is:
+### Recommendation 8: Add terminal telemetry for impact diagnostics
 
-1. Complete the behavior profile layer in doctrine.
-2. Raise family-specific tracking and terminal aggression to match real airframe capability.
-3. Cache link-state evaluation so the movement loop can update faster.
-4. Add a `LOST_TARGET` state with last-known-position search.
-5. Add a high-authority terminal steering mode for the last segment.
-6. Improve target scoring with LOS and stickiness.
+`fn_fpv_debugSnapshot.sqf` already exposes useful controller state. Extend it further for impact-first tuning.
+
+Suggested telemetry:
+
+- resolved impact point ASL
+- impact mode selected for the current target
+- last closing dot product
+- predicted time-to-contact
+- detonation reason
+- last impact surface type or object
+- last fallback reason if direct impact was abandoned
+
+This will matter once the fuse stops being a simple distance gate, because debugging impact logic without telemetry becomes guesswork.
+
+## Suggested Implementation Order
+
+The safest sequence is incremental.
+
+### Phase 1: Introduce impact semantics without changing spawn or locality
+
+- add an impact-point resolver helper
+- add debug output for impact point, impact mode, and detonation reason
+- keep current detonation as a fallback path
+
+### Phase 2: Change terminal guidance to chase the impact solution
+
+- replace fixed positive terminal offset with a shrinking offset curve
+- add explicit descent enforcement in `TERMINAL_VECTOR`
+- keep `TRACKING` largely as-is
+
+### Phase 3: Refactor the fuse
+
+- require closure or very short predicted time-to-contact for primary fuse approval
+- demote raw proximity-only detonation to fallback status
+- tune by target class
+
+### Phase 4: Add near-ground and near-object fallback strikes
+
+- for infantry and cover cases, allow deliberate ground or nearby surface impact
+- use obstruction information to pick alternate strike surfaces
+
+### Phase 5: Tune and validate per family
+
+- ArmaFPV can remain the sharpest attacker
+- KVN can preserve its current smoother feel but still hit physically
+- fpv_ua may need tighter fallback rules because of lower airframe performance
+
+This sequence preserves the existing architecture while directly addressing the observed problem.
 
 ## Bottom Line
 
-The drones are working, but the current chase model is still a conservative compatibility controller rather than a mature FPV attack controller.
+The current addon is not failing because the chase controller is weak. It is failing the realism goal because the final strike model is still built around self-detonation near the target rather than impact with the target or a nearby surface.
 
-Right now the system proves that the drones can:
+Today the system does this well:
 
-- spawn correctly
-- pick targets
-- chase a target
-- respect control ownership
-- detonate near the target
+- spawn and bootstrap autonomous drones safely
+- acquire and retain targets
+- chase using lead pursuit and owner-local terminal steering
+- detonate reliably across supported vendor families
 
-What it does not yet prove is that they can pursue like committed strike drones.
+Today it does not yet do this:
 
-The key missing piece is a real behavior-tuning layer plus a more forceful terminal steering model. Once those are added, the existing architecture is good enough to support a much more aggressive result.
+- resolve a physical impact point
+- enforce direct-impact or ground-impact semantics in the final seconds
+- reserve aerial self-detonation for fallback conditions only
+
+The good news is that the codebase is already set up for the right fix. The path forward is an impact-resolution and impact-aware fuse layer on top of the current controller, not a rewrite of the controller itself.

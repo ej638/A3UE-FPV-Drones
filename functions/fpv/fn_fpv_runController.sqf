@@ -41,6 +41,15 @@ private _restoreTerminalVectorControl = {
 
 	_uav setVariable ["A3UE_FPV_terminalSteeringActive", false, true];
 	_uav setVariable ["A3UE_FPV_terminalVectorEnteredAt", -1];
+	_uav setVariable ["A3UE_FPV_terminalVectorEntrySpeed", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorEntryDistance", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorCurrentSpeed", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorTargetSpeed", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorAccelApplied", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorAlignment", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorDt", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorSpeedJump", -1, true];
+	_uav setVariable ["A3UE_FPV_terminalVectorLastUpdateAt", -1];
 	_uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", -1];
 
 	true
@@ -208,8 +217,16 @@ while {
 								[_uav, _target] call A3UE_fnc_fpv_detonateCompat;
 							} else {
 								if (_distanceToTarget <= _terminalSteeringDistance) then {
+									private _entryVelocity = velocity _uav;
+									private _entrySpeed = (vectorMagnitude _entryVelocity) * 3.6;
+									if (_entrySpeed <= 0) then {
+										_entrySpeed = [_profile, "terminalVectorEntrySpeed", [_profile, "terminalAttackSpeed", [_profile, "terminalSpeed", 120] call A3UE_fnc_fpv_profileValue] call A3UE_fnc_fpv_profileValue] call A3UE_fnc_fpv_profileValue;
+									};
 									_uav setVariable ["A3UE_FPV_mode", "TERMINAL_VECTOR", true];
 									_uav setVariable ["A3UE_FPV_terminalVectorEnteredAt", _now];
+									_uav setVariable ["A3UE_FPV_terminalVectorEntrySpeed", _entrySpeed, true];
+									_uav setVariable ["A3UE_FPV_terminalVectorEntryDistance", _distanceToTarget, true];
+									_uav setVariable ["A3UE_FPV_terminalVectorLastUpdateAt", -1];
 									_uav setVariable ["A3UE_FPV_lastTerminalVectorDistance", _distanceToTarget];
 									_nextGuidanceTick = _now + 0.01;
 								} else {

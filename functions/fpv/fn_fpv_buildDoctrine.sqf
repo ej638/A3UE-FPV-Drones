@@ -313,6 +313,141 @@ private _terminalSteeringDistances = createHashMapFromArray [
 	]]
 ];
 
+private _terminalVectorTuningBySite = createHashMapFromArray [
+	["Airport", createHashMapFromArray [
+		["armafpv", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.78],
+			["terminalVectorMaxSpeedFactor", 1.00],
+			["terminalVectorAccel", 44],
+			["terminalVectorDecel", 54],
+			["terminalVectorMinAccelAlignment", 0.62],
+			["terminalVectorFullAccelAlignment", 0.91],
+			["terminalVectorRampDistanceFactor", 0.98],
+			["terminalVectorTurnBlendMin", 0.24],
+			["terminalVectorTurnBlendMax", 0.46],
+			["terminalVectorSpeedLagTolerance", 12],
+			["terminalVectorInnerFuseSlowdownOffset", 18],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.82]
+		]],
+		["kvn", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.82],
+			["terminalVectorMaxSpeedFactor", 0.99],
+			["terminalVectorAccel", 32],
+			["terminalVectorDecel", 40],
+			["terminalVectorMinAccelAlignment", 0.68],
+			["terminalVectorFullAccelAlignment", 0.92],
+			["terminalVectorRampDistanceFactor", 0.94],
+			["terminalVectorTurnBlendMin", 0.20],
+			["terminalVectorTurnBlendMax", 0.38],
+			["terminalVectorSpeedLagTolerance", 9],
+			["terminalVectorInnerFuseSlowdownOffset", 16],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.84]
+		]],
+		["fpv_ua", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.88],
+			["terminalVectorMaxSpeedFactor", 0.98],
+			["terminalVectorAccel", 24],
+			["terminalVectorDecel", 30],
+			["terminalVectorMinAccelAlignment", 0.74],
+			["terminalVectorFullAccelAlignment", 0.93],
+			["terminalVectorRampDistanceFactor", 0.90],
+			["terminalVectorTurnBlendMin", 0.18],
+			["terminalVectorTurnBlendMax", 0.30],
+			["terminalVectorSpeedLagTolerance", 6],
+			["terminalVectorInnerFuseSlowdownOffset", 14],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.86]
+		]]
+	]],
+	["Outpost", createHashMapFromArray [
+		["armafpv", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.82],
+			["terminalVectorMaxSpeedFactor", 0.99],
+			["terminalVectorAccel", 40],
+			["terminalVectorDecel", 50],
+			["terminalVectorMinAccelAlignment", 0.64],
+			["terminalVectorFullAccelAlignment", 0.92],
+			["terminalVectorRampDistanceFactor", 0.92],
+			["terminalVectorTurnBlendMin", 0.22],
+			["terminalVectorTurnBlendMax", 0.42],
+			["terminalVectorSpeedLagTolerance", 10],
+			["terminalVectorInnerFuseSlowdownOffset", 15],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.83]
+		]],
+		["kvn", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.86],
+			["terminalVectorMaxSpeedFactor", 0.98],
+			["terminalVectorAccel", 29],
+			["terminalVectorDecel", 37],
+			["terminalVectorMinAccelAlignment", 0.70],
+			["terminalVectorFullAccelAlignment", 0.93],
+			["terminalVectorRampDistanceFactor", 0.88],
+			["terminalVectorTurnBlendMin", 0.19],
+			["terminalVectorTurnBlendMax", 0.35],
+			["terminalVectorSpeedLagTolerance", 8],
+			["terminalVectorInnerFuseSlowdownOffset", 13],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.85]
+		]],
+		["fpv_ua", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.90],
+			["terminalVectorMaxSpeedFactor", 0.97],
+			["terminalVectorAccel", 22],
+			["terminalVectorDecel", 28],
+			["terminalVectorMinAccelAlignment", 0.76],
+			["terminalVectorFullAccelAlignment", 0.94],
+			["terminalVectorRampDistanceFactor", 0.84],
+			["terminalVectorTurnBlendMin", 0.17],
+			["terminalVectorTurnBlendMax", 0.28],
+			["terminalVectorSpeedLagTolerance", 6],
+			["terminalVectorInnerFuseSlowdownOffset", 12],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.87]
+		]]
+	]],
+	["Resource", createHashMapFromArray [
+		["armafpv", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.86],
+			["terminalVectorMaxSpeedFactor", 0.98],
+			["terminalVectorAccel", 36],
+			["terminalVectorDecel", 46],
+			["terminalVectorMinAccelAlignment", 0.66],
+			["terminalVectorFullAccelAlignment", 0.93],
+			["terminalVectorRampDistanceFactor", 0.86],
+			["terminalVectorTurnBlendMin", 0.20],
+			["terminalVectorTurnBlendMax", 0.38],
+			["terminalVectorSpeedLagTolerance", 9],
+			["terminalVectorInnerFuseSlowdownOffset", 13],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.84]
+		]],
+		["kvn", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.90],
+			["terminalVectorMaxSpeedFactor", 0.97],
+			["terminalVectorAccel", 26],
+			["terminalVectorDecel", 34],
+			["terminalVectorMinAccelAlignment", 0.72],
+			["terminalVectorFullAccelAlignment", 0.94],
+			["terminalVectorRampDistanceFactor", 0.82],
+			["terminalVectorTurnBlendMin", 0.18],
+			["terminalVectorTurnBlendMax", 0.31],
+			["terminalVectorSpeedLagTolerance", 7],
+			["terminalVectorInnerFuseSlowdownOffset", 11],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.86]
+		]],
+		["fpv_ua", createHashMapFromArray [
+			["terminalVectorEntrySpeedFactor", 0.93],
+			["terminalVectorMaxSpeedFactor", 0.96],
+			["terminalVectorAccel", 20],
+			["terminalVectorDecel", 25],
+			["terminalVectorMinAccelAlignment", 0.78],
+			["terminalVectorFullAccelAlignment", 0.95],
+			["terminalVectorRampDistanceFactor", 0.78],
+			["terminalVectorTurnBlendMin", 0.16],
+			["terminalVectorTurnBlendMax", 0.26],
+			["terminalVectorSpeedLagTolerance", 5],
+			["terminalVectorInnerFuseSlowdownOffset", 10],
+			["terminalVectorInnerFuseMinSpeedFactor", 0.88]
+		]]
+	]]
+];
+
 private _familyBehaviorDefaults = createHashMapFromArray [
 	["armafpv", createHashMapFromArray [
 		["maxLeadTimeNear", 0.20],
@@ -323,7 +458,14 @@ private _familyBehaviorDefaults = createHashMapFromArray [
 		["trackingHeightASL", 10],
 		["attackHeightASL", 8],
 		["terminalTurnBlend", 0.40],
-		["terminalVerticalGain", 0.70]
+		["terminalVerticalGain", 0.70],
+		["terminalVectorAccel", 38],
+		["terminalVectorDecel", 46],
+		["terminalVectorFullAccelAlignment", 0.95],
+		["terminalVectorMinAccelAlignment", 0.72],
+		["terminalVectorTurnBlendMin", 0.24],
+		["terminalVectorTurnBlendMax", 0.40],
+		["terminalVectorSpeedLagTolerance", 8]
 	]],
 	["kvn", createHashMapFromArray [
 		["maxLeadTimeNear", 0.24],
@@ -334,7 +476,14 @@ private _familyBehaviorDefaults = createHashMapFromArray [
 		["trackingHeightASL", 9],
 		["attackHeightASL", 8],
 		["terminalTurnBlend", 0.35],
-		["terminalVerticalGain", 0.65]
+		["terminalVerticalGain", 0.65],
+		["terminalVectorAccel", 28],
+		["terminalVectorDecel", 35],
+		["terminalVectorFullAccelAlignment", 0.94],
+		["terminalVectorMinAccelAlignment", 0.70],
+		["terminalVectorTurnBlendMin", 0.22],
+		["terminalVectorTurnBlendMax", 0.35],
+		["terminalVectorSpeedLagTolerance", 7]
 	]],
 	["fpv_ua", createHashMapFromArray [
 		["maxLeadTimeNear", 0.28],
@@ -345,7 +494,14 @@ private _familyBehaviorDefaults = createHashMapFromArray [
 		["trackingHeightASL", 8],
 		["attackHeightASL", 8],
 		["terminalTurnBlend", 0.32],
-		["terminalVerticalGain", 0.60]
+		["terminalVerticalGain", 0.60],
+		["terminalVectorAccel", 22],
+		["terminalVectorDecel", 26],
+		["terminalVectorFullAccelAlignment", 0.93],
+		["terminalVectorMinAccelAlignment", 0.68],
+		["terminalVectorTurnBlendMin", 0.20],
+		["terminalVectorTurnBlendMax", 0.32],
+		["terminalVectorSpeedLagTolerance", 6]
 	]]
 ];
 
@@ -457,14 +613,61 @@ private _buildBehaviorProfile = {
 	private _leadFar = ((_profile getOrDefault ["maxLeadTimeFar", 2.4]) + (_siteLeadTimeOffsets getOrDefault [_siteType, 0])) max (_leadNear + 0.6);
 	private _trackBreakDistance = _terminalGateDistance + (_siteTrackBreakOffsets getOrDefault [_siteType, 500]);
 	private _steeringMap = _terminalSteeringDistances getOrDefault [_siteType, createHashMap];
+	private _terminalSteeringDistance = _steeringMap getOrDefault [_familyId, 72];
+	private _siteVectorTuning = (_terminalVectorTuningBySite getOrDefault [_siteType, createHashMap]) getOrDefault [_familyId, createHashMap];
+	private _terminalVectorEntrySpeedFactor = _siteVectorTuning getOrDefault ["terminalVectorEntrySpeedFactor", 0.80];
+	private _terminalVectorMaxSpeedFactor = _siteVectorTuning getOrDefault ["terminalVectorMaxSpeedFactor", 1.00];
+	private _terminalVectorRampDistanceFactor = _siteVectorTuning getOrDefault ["terminalVectorRampDistanceFactor", 0.85];
+	private _terminalVectorInnerFuseSlowdownOffset = _siteVectorTuning getOrDefault ["terminalVectorInnerFuseSlowdownOffset", 12];
+	private _terminalVectorInnerFuseMinSpeedFactor = _siteVectorTuning getOrDefault ["terminalVectorInnerFuseMinSpeedFactor", 0.82];
+	private _terminalAttackSpeed = _profile getOrDefault ["terminalAttackSpeed", round (_terminalSpeed * 0.94)];
+	private _terminalVectorEntrySpeed = _profile getOrDefault ["terminalVectorEntrySpeed", round (_terminalAttackSpeed * _terminalVectorEntrySpeedFactor)];
+	private _terminalVectorMaxSpeed = _profile getOrDefault ["terminalVectorMaxSpeed", round (_terminalSpeed * _terminalVectorMaxSpeedFactor)];
+	private _terminalVectorAccel = _profile getOrDefault ["terminalVectorAccel", (_siteVectorTuning getOrDefault ["terminalVectorAccel", 24])];
+	private _terminalVectorDecel = _profile getOrDefault ["terminalVectorDecel", (_siteVectorTuning getOrDefault ["terminalVectorDecel", 30])];
+	private _terminalVectorFullAccelAlignment = _profile getOrDefault ["terminalVectorFullAccelAlignment", (_siteVectorTuning getOrDefault ["terminalVectorFullAccelAlignment", 0.94])];
+	private _terminalVectorMinAccelAlignment = _profile getOrDefault ["terminalVectorMinAccelAlignment", (_siteVectorTuning getOrDefault ["terminalVectorMinAccelAlignment", 0.70])];
+	private _terminalVectorTurnBlendMin = _profile getOrDefault ["terminalVectorTurnBlendMin", (_siteVectorTuning getOrDefault ["terminalVectorTurnBlendMin", 0.22])];
+	private _terminalVectorTurnBlendMax = _profile getOrDefault ["terminalVectorTurnBlendMax", (_siteVectorTuning getOrDefault ["terminalVectorTurnBlendMax", (_profile getOrDefault ["terminalTurnBlend", 0.35])])];
+	private _terminalVectorSpeedLagTolerance = _profile getOrDefault ["terminalVectorSpeedLagTolerance", (_siteVectorTuning getOrDefault ["terminalVectorSpeedLagTolerance", 6])];
+	private _terminalVectorRampDistance = _profile getOrDefault ["terminalVectorRampDistance", round (_terminalSteeringDistance * _terminalVectorRampDistanceFactor)];
+	private _terminalVectorInnerFuseSlowdownDistance = _profile getOrDefault ["terminalVectorInnerFuseSlowdownDistance", ((_detonationDistance + _terminalVectorInnerFuseSlowdownOffset) max (_detonationDistance + 4))];
+	private _terminalVectorInnerFuseMinSpeed = _profile getOrDefault ["terminalVectorInnerFuseMinSpeed", round (_terminalVectorEntrySpeed * _terminalVectorInnerFuseMinSpeedFactor)];
+
+	_terminalAttackSpeed = _terminalAttackSpeed min _terminalCap;
+	_terminalVectorMaxSpeed = _terminalVectorMaxSpeed min _terminalCap;
+	_terminalVectorEntrySpeed = (_terminalVectorEntrySpeed min _terminalVectorMaxSpeed) max 1;
+	_terminalVectorAccel = _terminalVectorAccel max 1;
+	_terminalVectorDecel = _terminalVectorDecel max 1;
+	_terminalVectorFullAccelAlignment = (_terminalVectorFullAccelAlignment max 0) min 1;
+	_terminalVectorMinAccelAlignment = (_terminalVectorMinAccelAlignment max 0) min _terminalVectorFullAccelAlignment;
+	_terminalVectorTurnBlendMin = (_terminalVectorTurnBlendMin max 0) min 1;
+	_terminalVectorTurnBlendMax = (_terminalVectorTurnBlendMax max _terminalVectorTurnBlendMin) min 1;
+	_terminalVectorSpeedLagTolerance = _terminalVectorSpeedLagTolerance max 0;
+	_terminalVectorRampDistance = (_terminalVectorRampDistance max 1) min _terminalSteeringDistance;
+	_terminalVectorInnerFuseSlowdownDistance = (_terminalVectorInnerFuseSlowdownDistance max (_detonationDistance + 4)) min (_terminalSteeringDistance - 2);
+	_terminalVectorInnerFuseMinSpeed = (_terminalVectorInnerFuseMinSpeed min _terminalVectorMaxSpeed) max 1;
 
 	_profile set ["trackingSpeed", _trackingSpeed];
 	_profile set ["terminalSpeed", _terminalSpeed];
+	_profile set ["terminalAttackSpeed", _terminalAttackSpeed];
+	_profile set ["terminalVectorEntrySpeed", _terminalVectorEntrySpeed];
+	_profile set ["terminalVectorMaxSpeed", _terminalVectorMaxSpeed];
+	_profile set ["terminalVectorAccel", _terminalVectorAccel];
+	_profile set ["terminalVectorDecel", _terminalVectorDecel];
+	_profile set ["terminalVectorFullAccelAlignment", _terminalVectorFullAccelAlignment];
+	_profile set ["terminalVectorMinAccelAlignment", _terminalVectorMinAccelAlignment];
+	_profile set ["terminalVectorRampDistance", _terminalVectorRampDistance];
+	_profile set ["terminalVectorTurnBlendMin", _terminalVectorTurnBlendMin];
+	_profile set ["terminalVectorTurnBlendMax", _terminalVectorTurnBlendMax];
+	_profile set ["terminalVectorSpeedLagTolerance", _terminalVectorSpeedLagTolerance];
+	_profile set ["terminalVectorInnerFuseSlowdownDistance", _terminalVectorInnerFuseSlowdownDistance];
+	_profile set ["terminalVectorInnerFuseMinSpeed", _terminalVectorInnerFuseMinSpeed];
 	_profile set ["terminalGateDistance2D", round (_terminalGateDistance * 0.55)];
 	_profile set ["detonationDistance2D", round (_detonationDistance * 0.50)];
 	_profile set ["trackBreakDistance", _trackBreakDistance];
 	_profile set ["dropTargetDistance", _trackBreakDistance + 150];
-	_profile set ["terminalSteeringDistance", _steeringMap getOrDefault [_familyId, 72]];
+	_profile set ["terminalSteeringDistance", _terminalSteeringDistance];
 	_profile set ["maxLeadTimeNear", _leadNear];
 	_profile set ["maxLeadTimeFar", _leadFar];
 	_profile set ["maxLeadDistance", _siteLeadDistanceCaps getOrDefault [_siteType, 550]];
