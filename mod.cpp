@@ -1,12 +1,12 @@
-name = "FPV AI Drones";
+name = "A3UE FPV Drones";
 picture = "logo.paa";  // Optional
 actionName = "GitHub";
-action = "https://github.com/yourusername/fpv_ai_drones";  // Optional
+action = "https://github.com/ej638/A3UE-FPV-Drones";  // Optional
 description = "AI-controlled FPV kamikaze drones that target vehicles";
 logo = "logo.paa";  // Optional
 logoOver = "logo.paa";  // Optional
-tooltip = "FPV AI Drones";
-tooltipOwned = "FPV AI Drones Owned";
+tooltip = "A3UE FPV Drones";
+tooltipOwned = "A3UE FPV Drones Owned";
 overview = "This mod adds AI-controlled FPV kamikaze drones that automatically target and attack enemy vehicles.";
 author = "Your Name";
 version = "1.0.0"; 
