@@ -5,7 +5,7 @@ Scope: Production-ready Antistasi Ultimate integration of autonomous FPV threat 
 
 ## 1. Executive Summary
 
-The original redesign direction remains correct: the legacy Eden module must be replaced by a server-owned, event-driven FPV manager that reacts to Antistasi site lifecycle events and runs one controller per drone on the current locality owner.
+The original redesign direction remains correct: the legacy Eden module has been replaced by a server-owned, event-driven FPV manager that reacts to Antistasi site lifecycle events and runs one controller per drone on the current locality owner.
 
 The source discovery changed three important design details.
 

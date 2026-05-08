@@ -713,6 +713,12 @@ Inspect site registry:
 hint str (missionNamespace getVariable ["A3UE_FPV_registry", createHashMap]);
 ```
 
+Inspect the combined FPV state snapshot:
+
+```sqf
+hint str (call A3UE_fnc_fpv_debugSnapshot);
+```
+
 ### 15.5 Acceptance scenarios
 
 #### Scenario 1: Soft-dependency boot safety
