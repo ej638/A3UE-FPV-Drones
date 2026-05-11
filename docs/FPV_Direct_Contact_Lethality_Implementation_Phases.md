@@ -559,9 +559,12 @@ createMarker [A3UE_FPV_debugMarker, player getPos [_distance, _bearing]];
 Inspect the current debug marker and registry state:
 
 ```sqf
-hint str [
-   missionNamespace getVariable ["A3UE_FPV_debugMarker", ""],
-   missionNamespace getVariable ["A3UE_FPV_registry", createHashMap]
+diag_log format [
+   "A3UE_FPV_VALIDATION marker_registry=%1",
+   str [
+      missionNamespace getVariable ["A3UE_FPV_debugMarker", ""],
+      missionNamespace getVariable ["A3UE_FPV_registry", createHashMap]
+   ]
 ];
 ```
 
@@ -573,19 +576,120 @@ if !(isNil "A3UE_FPV_debugMarker") then {
 };
 ```
 
+### 14.3.3 Recommended grouped execution
+
+Do not try to run the entire validation flow for spawn, live flight, and post-strike review in one one-shot debug execution. Those checks depend on different mission states.
+
+- Run the debug-site-marker spawn block first as its own server-side execution.
+- Run the in-flight inspection block as one local execution while at least one managed drone is still alive and closing.
+- Run the post-strike review block as one local execution after at least one managed drone has actually detonated and written a `recentDetonations` record.
+
+Copy-paste block 1: spawn a debug site marker behind the player. Keep this unchanged and run it in the same server-side context you already used successfully:
+
+```sqf
+missionNamespace setVariable ["A3UE_FPV_debug", true];
+
+private _siteType = "Airport";
+private _distance = 700;
+private _bearing = (getDir player) + 180;
+
+if !(isNil "A3UE_FPV_debugMarker") then {
+   deleteMarker A3UE_FPV_debugMarker;
+};
+
+A3UE_FPV_debugMarker = format ["A3UE_FPV_DEBUG_%1", floor (diag_tickTime * 1000)];
+createMarker [A3UE_FPV_debugMarker, player getPos [_distance, _bearing]];
+
+[A3UE_FPV_debugMarker, _siteType, true] call A3UE_fnc_fpv_managerEvaluateSite;
+```
+
+Copy-paste block 2: run this while drones are flying. It logs the live registry, managed drones, one drone's current terminal telemetry, and the live snapshot summaries that are meaningful before detonation:
+
+```sqf
+private _managed = allUnitsUAV select { _x getVariable ["A3UE_FPV_managed", false] };
+private _d = _managed param [0, objNull];
+private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
+
+diag_log format [
+   "A3UE_FPV_VALIDATION marker_registry=%1",
+   str [
+      missionNamespace getVariable ["A3UE_FPV_debugMarker", ""],
+      missionNamespace getVariable ["A3UE_FPV_registry", createHashMap]
+   ]
+];
+
+diag_log format [
+   "A3UE_FPV_VALIDATION managed_drones=%1",
+   str (_managed apply { _x getVariable ["A3UE_FPV_netId", netId _x] })
+];
+
+if (isNull _d) then {
+   diag_log "A3UE_FPV_VALIDATION drone_telemetry=NO_MANAGED_DRONE";
+} else {
+   diag_log format [
+      "A3UE_FPV_VALIDATION drone_telemetry=%1",
+      str [
+         typeOf _d,
+         _d getVariable ["A3UE_FPV_mode", ""],
+         _d getVariable ["A3UE_FPV_terminalImpactMode", ""],
+         _d getVariable ["A3UE_FPV_lastImpactPointASL", []],
+         _d getVariable ["A3UE_FPV_lastImpactSurfaceType", ""],
+         _d getVariable ["A3UE_FPV_lastClosingDot", -2],
+         _d getVariable ["A3UE_FPV_lastTimeToContact", -1],
+         _d getVariable ["A3UE_FPV_lastDetonationReason", ""],
+         _d getVariable ["A3UE_FPV_lastFallbackReason", ""]
+      ]
+   ];
+};
+
+diag_log format ["A3UE_FPV_VALIDATION validation=%1", str (_snapshot get "validation")];
+diag_log format ["A3UE_FPV_VALIDATION impactSummary=%1", str (_snapshot get "impactSummary")];
+diag_log format ["A3UE_FPV_VALIDATION directContactPolicy=%1", str (_snapshot get "directContactPolicy")];
+diag_log format ["A3UE_FPV_VALIDATION phase1EvidenceSummary=%1", str (_snapshot get "phase1EvidenceSummary")];
+diag_log format ["A3UE_FPV_VALIDATION phase4IntegrationSummary=%1", str (_snapshot get "phase4IntegrationSummary")];
+diag_log format ["A3UE_FPV_VALIDATION phase5AcceptanceSummary=%1", str (_snapshot get "phase5AcceptanceSummary")];
+```
+
+Copy-paste block 3: run this after drones explode. It logs the post-strike records and the acceptance summaries that consume recent evidence:
+
+```sqf
+private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
+
+diag_log format [
+   "A3UE_FPV_VALIDATION marker_registry=%1",
+   str [
+      missionNamespace getVariable ["A3UE_FPV_debugMarker", ""],
+      missionNamespace getVariable ["A3UE_FPV_registry", createHashMap]
+   ]
+];
+
+diag_log format ["A3UE_FPV_VALIDATION validation=%1", str (_snapshot get "validation")];
+diag_log format ["A3UE_FPV_VALIDATION impactSummary=%1", str (_snapshot get "impactSummary")];
+diag_log format ["A3UE_FPV_VALIDATION recentDetonations=%1", str (_snapshot get "recentDetonations")];
+diag_log format ["A3UE_FPV_VALIDATION phase1EvidenceSummary=%1", str (_snapshot get "phase1EvidenceSummary")];
+diag_log format ["A3UE_FPV_VALIDATION phase4IntegrationSummary=%1", str (_snapshot get "phase4IntegrationSummary")];
+diag_log format ["A3UE_FPV_VALIDATION phase5AcceptanceSummary=%1", str (_snapshot get "phase5AcceptanceSummary")];
+```
+
 ### 14.4 Core validation snippets
 
 Find all managed drones:
 
 ```sqf
-allUnitsUAV select { _x getVariable ["A3UE_FPV_managed", false] }
+private _managed = allUnitsUAV select { _x getVariable ["A3UE_FPV_managed", false] };
+diag_log format [
+   "A3UE_FPV_VALIDATION managed_drones=%1",
+   str (_managed apply { _x getVariable ["A3UE_FPV_netId", netId _x] })
+];
 ```
 
 Inspect one managed drone with direct-hit telemetry:
 
 ```sqf
 private _d = (allUnitsUAV select { _x getVariable ["A3UE_FPV_managed", false] }) param [0, objNull];
-hint str [
+diag_log format [
+   "A3UE_FPV_VALIDATION drone_telemetry=%1",
+   str [
     typeOf _d,
     _d getVariable ["A3UE_FPV_mode", ""],
     _d getVariable ["A3UE_FPV_terminalImpactMode", ""],
@@ -595,6 +699,7 @@ hint str [
     _d getVariable ["A3UE_FPV_lastTimeToContact", -1],
     _d getVariable ["A3UE_FPV_lastDetonationReason", ""],
     _d getVariable ["A3UE_FPV_lastFallbackReason", ""]
+   ]
 ];
 ```
 
@@ -602,49 +707,49 @@ Inspect the validation block directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "validation");
+diag_log format ["A3UE_FPV_VALIDATION validation=%1", str (_snapshot get "validation")];
 ```
 
 Inspect the impact summary directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "impactSummary");
+diag_log format ["A3UE_FPV_VALIDATION impactSummary=%1", str (_snapshot get "impactSummary")];
 ```
 
 Inspect recent detonation records directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "recentDetonations");
+diag_log format ["A3UE_FPV_VALIDATION recentDetonations=%1", str (_snapshot get "recentDetonations")];
 ```
 
 Inspect the direct-contact policy contract directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "directContactPolicy");
+diag_log format ["A3UE_FPV_VALIDATION directContactPolicy=%1", str (_snapshot get "directContactPolicy")];
 ```
 
 Inspect the phase 1 evidence summary directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "phase1EvidenceSummary");
+diag_log format ["A3UE_FPV_VALIDATION phase1EvidenceSummary=%1", str (_snapshot get "phase1EvidenceSummary")];
 ```
 
 Inspect the phase 4 integration summary directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "phase4IntegrationSummary");
+diag_log format ["A3UE_FPV_VALIDATION phase4IntegrationSummary=%1", str (_snapshot get "phase4IntegrationSummary")];
 ```
 
 Inspect the phase 5 acceptance summary directly:
 
 ```sqf
 private _snapshot = call A3UE_fnc_fpv_debugSnapshot;
-hint str (_snapshot get "phase5AcceptanceSummary");
+diag_log format ["A3UE_FPV_VALIDATION phase5AcceptanceSummary=%1", str (_snapshot get "phase5AcceptanceSummary")];
 ```
 
 ### 14.4.1 Telemetry interpretation
