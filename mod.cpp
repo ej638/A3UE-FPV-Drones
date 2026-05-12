@@ -1,12 +1,12 @@
-name = "A3UE FPV Drones";
+name = "[A3UE] FPV Drones";
 picture = "logo.paa";  // Optional
 actionName = "GitHub";
 action = "https://github.com/ej638/A3UE-FPV-Drones";  // Optional
 logo = "logo.paa";  // Optional
 logoOver = "logo.paa";  // Optional
-tooltip = "A3UE FPV Drones";
-tooltipOwned = "A3UE FPV Drones Owned";
-description = "A3UE Antistasi FPV threat drones that deploy from active sites and autonomously attack hostile targets.";
+tooltip = "[A3UE] FPV Drones";
+tooltipOwned = "[A3UE] FPV Drones Owned";
+description = "[A3UE] Antistasi FPV threat drones that deploy from active sites and autonomously attack hostile targets.";
 overview = "This mod integrates Antistasi-driven FPV drone threats through A3UE, spawning autonomous strike drones from supported site types with runtime FPV family compatibility.";
 author = "Your Name";
 version = "1.0.0"; 
