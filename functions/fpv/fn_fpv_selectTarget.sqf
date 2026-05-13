@@ -30,7 +30,10 @@ if (!(_siteRadius isEqualType 0)) then {
 if (_siteRadius <= 0) then {
 	_siteRadius = switch (_siteType) do {
 		case "Airport": { 700 };
+		case "Milbase": { 625 };
+		case "Seaport": { 575 };
 		case "Outpost": { 500 };
+		case "Factory": { 425 };
 		default { 350 };
 	};
 };

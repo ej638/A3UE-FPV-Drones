@@ -30,6 +30,8 @@ Native support therefore requires:
 - `A3A\addons\core\functions\CREATE\fn_createAIOutposts.sqf` triggers `locationSpawned` with `"Outpost"` after site vehicles and groups have already been initialized.
 - `A3A\addons\core\functions\CREATE\fn_createAIResources.sqf` triggers `locationSpawned` with `"Resource"` after site initialization.
 - `A3A\addons\core\functions\CREATE\fn_createAIAirplane.sqf` triggers `locationSpawned` with `"Airport"` after airport vehicles have already been spawned and initialized.
+- `A3A\addons\core\functions\CREATE\fn_createAIMilbase.sqf` triggers `locationSpawned` with `"Milbase"` after the base vehicles and groups are initialized.
+- `A3A\addons\core\functions\Base\fn_distance.sqf` schedules `factories` through `A3A_fnc_createAIresources` and `seaports` through `A3A_fnc_createAIOutposts`, so the raw `locationSpawned` strings for those sites remain `"Resource"` and `"Outpost"` unless the addon reclassifies them by marker membership.
 
 ### Antistasi Extender
 
@@ -49,7 +51,8 @@ Native support therefore requires:
 `locationSpawned` is the correct primary deployment hook.
 
 - It gives the manager the site marker, the exact Antistasi location type string, and a spawn or despawn transition.
-- The confirmed location strings relevant to this system are `Airport`, `Outpost`, and `Resource`.
+- The relevant raw Antistasi strings are `Airport`, `Milbase`, `Outpost`, and `Resource`.
+- `Seaport` and `Factory` need marker-based normalization inside the addon because Antistasi routes them through the outpost and resource creators.
 - The event fires after Antistasi has already created and initialized the site's normal vehicles and groups.
 
 `AIVehInit` remains the correct secondary hook.
@@ -274,7 +277,10 @@ Important KVN finding:
 | Site Type | Spawn Chance | Stock | Role Weights | Family Bias |
 | --- | --- | --- | --- | --- |
 | `Airport` | 0.60 | 2-4 | `AT 60`, `AP 20`, `RECON 20` | Favor KVN `_25KM`, UAFPV `PG7VL_AT`, Crocus `AT_TI` |
+| `Milbase` | 0.50 | 2-3 | `AT 45`, `AP 35`, `RECON 20` | Favor long-endurance KVN with stronger AT presence than outposts |
+| `Seaport` | 0.45 | 1-3 | `AT 25`, `AP 40`, `RECON 35` | Favor KVN long-endurance classes and mixed AP/recon harassment |
 | `Outpost` | 0.35 | 1-2 | `AT 30`, `AP 50`, `RECON 20` | Favor AP-heavy Crocus and fpv_ua, with KVN `_20KM` support |
+| `Factory` | 0.30 | 1-2 | `AT 20`, `AP 40`, `RECON 40` | Favor fpv_ua and mixed recon harassment slightly above resources |
 | `Resource` | 0.25 | 1 | `AT 15`, `AP 45`, `RECON 40` | Favor TI-capable AP harassment and short-range KVN base classes |
 
 ### 6.3 Resolved east-side example pools

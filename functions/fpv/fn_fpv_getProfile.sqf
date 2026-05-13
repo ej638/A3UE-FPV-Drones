@@ -70,6 +70,6 @@ private _profile = createHashMap;
 			_candidate
 		};
 	};
-} forEach ["Airport", "Outpost", "Resource"];
+} forEach ["Airport", "Milbase", "Seaport", "Outpost", "Factory", "Resource"];
 
 _profile

@@ -36,15 +36,11 @@ private _buildWeightedRoleEntries = {
 				if (_roleId == "RECON") then {
 					_weight = 3;
 				} else {
-					if (_siteType == "Airport" && {_className find "_TI" > -1}) then {
+					if (_siteType in ["Airport", "Milbase"] && {_className find "_TI" > -1}) then {
 						_weight = _weight + 2;
 					};
 
-					if (_siteType == "Outpost" && {_roleId == "AP"} && {_className find "_TI" > -1}) then {
-						_weight = _weight + 1;
-					};
-
-					if (_siteType == "Resource" && {_roleId == "AP"} && {_className find "_TI" > -1}) then {
+					if (_siteType in ["Outpost", "Seaport", "Factory", "Resource"] && {_roleId == "AP"} && {_className find "_TI" > -1}) then {
 						_weight = _weight + 1;
 					};
 				};
@@ -65,7 +61,7 @@ private _buildWeightedRoleEntries = {
 					};
 
 					if (_className find "IED" > -1) then {
-						_weight = if (_siteType == "Resource") then {2} else {1};
+						_weight = if (_siteType in ["Factory", "Resource"]) then {2} else {1};
 					};
 				};
 
@@ -94,6 +90,42 @@ private _buildWeightedRoleEntries = {
 						};
 					};
 
+					case "Milbase": {
+						if (_is20) then {
+							_weight = _weight + 4;
+						};
+
+						if (_is25) then {
+							_weight = _weight + 2;
+						};
+
+						if (!_is20 && !_is25) then {
+							_weight = _weight + 1;
+						};
+
+						if (_roleId == "RECON" && {_isTI}) then {
+							_weight = _weight + 2;
+						};
+					};
+
+					case "Seaport": {
+						if (_is25) then {
+							_weight = _weight + 3;
+						};
+
+						if (_is20) then {
+							_weight = _weight + 3;
+						};
+
+						if (!_is20 && !_is25) then {
+							_weight = _weight + 1;
+						};
+
+						if (_roleId == "RECON" && {_isTI}) then {
+							_weight = _weight + 2;
+						};
+					};
+
 					case "Outpost": {
 						if (_is20) then {
 							_weight = _weight + 4;
@@ -104,6 +136,20 @@ private _buildWeightedRoleEntries = {
 						};
 
 						if (!_is20 && !_is25) then {
+							_weight = _weight + 2;
+						};
+
+						if (_roleId == "RECON" && {_isTI}) then {
+							_weight = _weight + 2;
+						};
+					};
+
+					case "Factory": {
+						if (!_is20 && !_is25) then {
+							_weight = _weight + 3;
+						};
+
+						if (_is20) then {
 							_weight = _weight + 2;
 						};
 
@@ -256,6 +302,22 @@ private _siteSearchProfiles = createHashMapFromArray [
 	]]
 ];
 
+_siteSearchProfiles set ["Milbase", createHashMapFromArray [
+	["searchRadius", 800],
+	["localSearchRadius", 300],
+	["searchHeightAGL", 40]
+]];
+_siteSearchProfiles set ["Seaport", createHashMapFromArray [
+	["searchRadius", 750],
+	["localSearchRadius", 280],
+	["searchHeightAGL", 32]
+]];
+_siteSearchProfiles set ["Factory", createHashMapFromArray [
+	["searchRadius", 575],
+	["localSearchRadius", 240],
+	["searchHeightAGL", 28]
+]];
+
 private _siteLostTargetProfiles = createHashMapFromArray [
 	["Airport", createHashMapFromArray [
 		["lostTargetRadius", 220],
@@ -277,11 +339,34 @@ private _siteLostTargetProfiles = createHashMapFromArray [
 	]]
 ];
 
+_siteLostTargetProfiles set ["Milbase", createHashMapFromArray [
+	["lostTargetRadius", 200],
+	["lostTargetTTL", 5],
+	["lostTargetConeHalfAngle", 32],
+	["lostTargetClimbAGL", 16]
+]];
+_siteLostTargetProfiles set ["Seaport", createHashMapFromArray [
+	["lostTargetRadius", 190],
+	["lostTargetTTL", 4],
+	["lostTargetConeHalfAngle", 32],
+	["lostTargetClimbAGL", 15]
+]];
+_siteLostTargetProfiles set ["Factory", createHashMapFromArray [
+	["lostTargetRadius", 160],
+	["lostTargetTTL", 3],
+	["lostTargetConeHalfAngle", 28],
+	["lostTargetClimbAGL", 12]
+]];
+
 private _siteTrackBreakOffsets = createHashMapFromArray [
 	["Airport", 700],
 	["Outpost", 550],
 	["Resource", 450]
 ];
+
+_siteTrackBreakOffsets set ["Milbase", 625];
+_siteTrackBreakOffsets set ["Seaport", 600];
+_siteTrackBreakOffsets set ["Factory", 500];
 
 private _siteLeadDistanceCaps = createHashMapFromArray [
 	["Airport", 650],
@@ -289,11 +374,19 @@ private _siteLeadDistanceCaps = createHashMapFromArray [
 	["Resource", 500]
 ];
 
+_siteLeadDistanceCaps set ["Milbase", 610];
+_siteLeadDistanceCaps set ["Seaport", 590];
+_siteLeadDistanceCaps set ["Factory", 535];
+
 private _siteLeadTimeOffsets = createHashMapFromArray [
 	["Airport", 0.00],
 	["Outpost", -0.20],
 	["Resource", -0.35]
 ];
+
+_siteLeadTimeOffsets set ["Milbase", -0.10];
+_siteLeadTimeOffsets set ["Seaport", -0.12];
+_siteLeadTimeOffsets set ["Factory", -0.28];
 
 private _terminalSteeringDistances = createHashMapFromArray [
 	["Airport", createHashMapFromArray [
@@ -312,6 +405,22 @@ private _terminalSteeringDistances = createHashMapFromArray [
 		["fpv_ua", 68]
 	]]
 ];
+
+_terminalSteeringDistances set ["Milbase", createHashMapFromArray [
+	["armafpv", 88],
+	["kvn", 84],
+	["fpv_ua", 80]
+]];
+_terminalSteeringDistances set ["Seaport", createHashMapFromArray [
+	["armafpv", 86],
+	["kvn", 82],
+	["fpv_ua", 78]
+]];
+_terminalSteeringDistances set ["Factory", createHashMapFromArray [
+	["armafpv", 80],
+	["kvn", 76],
+	["fpv_ua", 72]
+]];
 
 private _terminalVectorTuningBySite = createHashMapFromArray [
 	["Airport", createHashMapFromArray [
@@ -447,6 +556,10 @@ private _terminalVectorTuningBySite = createHashMapFromArray [
 		]]
 	]]
 ];
+
+_terminalVectorTuningBySite set ["Milbase", [_terminalVectorTuningBySite getOrDefault ["Airport", createHashMap]] call _copyMap];
+_terminalVectorTuningBySite set ["Seaport", [_terminalVectorTuningBySite getOrDefault ["Outpost", createHashMap]] call _copyMap];
+_terminalVectorTuningBySite set ["Factory", [_terminalVectorTuningBySite getOrDefault ["Resource", createHashMap]] call _copyMap];
 
 private _familyBehaviorDefaults = createHashMapFromArray [
 	["armafpv", createHashMapFromArray [
@@ -672,6 +785,60 @@ private _behaviorAuthoring = createHashMapFromArray [
 		]]
 	]]
 ];
+
+_behaviorAuthoring set ["Milbase", [
+	["armafpv", [
+		["AT", [["trackingSpeed", 148], ["terminalSpeed", 176], ["terminalGateDistance", 96], ["detonationDistance", 18]]],
+		["AP", [["trackingSpeed", 158], ["terminalSpeed", 179], ["terminalGateDistance", 88], ["detonationDistance", 14]]],
+		["RECON", [["trackingSpeed", 153], ["terminalSpeed", 172], ["terminalGateDistance", 92], ["detonationDistance", 13]]]
+	]],
+	["kvn", [
+		["AT", [["trackingSpeed", 122], ["terminalSpeed", 136], ["terminalGateDistance", 92], ["detonationDistance", 17]]],
+		["AP", [["trackingSpeed", 126], ["terminalSpeed", 139], ["terminalGateDistance", 84], ["detonationDistance", 13]]],
+		["RECON", [["trackingSpeed", 124], ["terminalSpeed", 134], ["terminalGateDistance", 88], ["detonationDistance", 12]]]
+	]],
+	["fpv_ua", [
+		["AT", [["trackingSpeed", 100], ["terminalSpeed", 112], ["terminalGateDistance", 88], ["detonationDistance", 15]]],
+		["AP", [["trackingSpeed", 104], ["terminalSpeed", 115], ["terminalGateDistance", 80], ["detonationDistance", 12]]],
+		["RECON", [["trackingSpeed", 102], ["terminalSpeed", 110], ["terminalGateDistance", 84], ["detonationDistance", 11]]]
+	]]
+]];
+
+_behaviorAuthoring set ["Seaport", [
+	["armafpv", [
+		["AT", [["trackingSpeed", 146], ["terminalSpeed", 174], ["terminalGateDistance", 94], ["detonationDistance", 17]]],
+		["AP", [["trackingSpeed", 156], ["terminalSpeed", 178], ["terminalGateDistance", 86], ["detonationDistance", 13]]],
+		["RECON", [["trackingSpeed", 151], ["terminalSpeed", 170], ["terminalGateDistance", 90], ["detonationDistance", 12]]]
+	]],
+	["kvn", [
+		["AT", [["trackingSpeed", 121], ["terminalSpeed", 135], ["terminalGateDistance", 90], ["detonationDistance", 16]]],
+		["AP", [["trackingSpeed", 125], ["terminalSpeed", 139], ["terminalGateDistance", 82], ["detonationDistance", 12]]],
+		["RECON", [["trackingSpeed", 123], ["terminalSpeed", 133], ["terminalGateDistance", 86], ["detonationDistance", 11]]]
+	]],
+	["fpv_ua", [
+		["AT", [["trackingSpeed", 99], ["terminalSpeed", 111], ["terminalGateDistance", 86], ["detonationDistance", 15]]],
+		["AP", [["trackingSpeed", 103], ["terminalSpeed", 115], ["terminalGateDistance", 78], ["detonationDistance", 11]]],
+		["RECON", [["trackingSpeed", 101], ["terminalSpeed", 109], ["terminalGateDistance", 82], ["detonationDistance", 10]]]
+	]]
+]];
+
+_behaviorAuthoring set ["Factory", [
+	["armafpv", [
+		["AT", [["trackingSpeed", 142], ["terminalSpeed", 168], ["terminalGateDistance", 86], ["detonationDistance", 16]]],
+		["AP", [["trackingSpeed", 152], ["terminalSpeed", 173], ["terminalGateDistance", 80], ["detonationDistance", 12]]],
+		["RECON", [["trackingSpeed", 147], ["terminalSpeed", 165], ["terminalGateDistance", 84], ["detonationDistance", 11]]]
+	]],
+	["kvn", [
+		["AT", [["trackingSpeed", 117], ["terminalSpeed", 131], ["terminalGateDistance", 82], ["detonationDistance", 15]]],
+		["AP", [["trackingSpeed", 121], ["terminalSpeed", 135], ["terminalGateDistance", 76], ["detonationDistance", 11]]],
+		["RECON", [["trackingSpeed", 119], ["terminalSpeed", 129], ["terminalGateDistance", 80], ["detonationDistance", 10]]]
+	]],
+	["fpv_ua", [
+		["AT", [["trackingSpeed", 96], ["terminalSpeed", 107], ["terminalGateDistance", 78], ["detonationDistance", 14]]],
+		["AP", [["trackingSpeed", 100], ["terminalSpeed", 111], ["terminalGateDistance", 72], ["detonationDistance", 10]]],
+		["RECON", [["trackingSpeed", 98], ["terminalSpeed", 105], ["terminalGateDistance", 76], ["detonationDistance", 9]]]
+	]]
+]];
 
 private _buildBehaviorProfile = {
 	params ["_siteType", "_familyId", "_roleId", ["_authoredSpecs", []]];
@@ -916,7 +1083,10 @@ private _buildBehaviorProfile = {
 	_doctrine set [_siteType, _siteEntry];
 } forEach [
 	["Airport", 0.60, [2, 4], [["AT", 60], ["AP", 20], ["RECON", 20]], [["armafpv", 25], ["fpv_ua", 35], ["kvn", 40]]],
+	["Milbase", 0.50, [2, 3], [["AT", 45], ["AP", 35], ["RECON", 20]], [["armafpv", 30], ["fpv_ua", 30], ["kvn", 40]]],
+	["Seaport", 0.45, [1, 3], [["AT", 25], ["AP", 40], ["RECON", 35]], [["armafpv", 25], ["fpv_ua", 30], ["kvn", 45]]],
 	["Outpost", 0.35, [1, 2], [["AT", 30], ["AP", 50], ["RECON", 20]], [["armafpv", 40], ["fpv_ua", 35], ["kvn", 25]]],
+	["Factory", 0.30, [1, 2], [["AT", 20], ["AP", 40], ["RECON", 40]], [["armafpv", 30], ["fpv_ua", 40], ["kvn", 30]]],
 	["Resource", 0.25, [1, 1], [["AT", 15], ["AP", 45], ["RECON", 40]], [["armafpv", 35], ["fpv_ua", 35], ["kvn", 30]]]
 ];
 

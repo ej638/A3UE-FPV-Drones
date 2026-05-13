@@ -82,7 +82,10 @@ if (_uavClass isEqualTo "") then {
 private _spawnCenter = getMarkerPos _markerX;
 private _spawnBand = switch (_locationType) do {
 	case "Airport": { [50, 100] };
+	case "Milbase": { [40, 90] };
+	case "Seaport": { [30, 85] };
 	case "Outpost": { [20, 70] };
+	case "Factory": { [15, 60] };
 	default { [10, 50] };
 };
 
@@ -94,7 +97,10 @@ private _spawnPos = if (!isNil "A3A_fnc_getSafePos") then {
 
 private _spawnHeight = switch (_locationType) do {
 	case "Airport": { 45 };
+	case "Milbase": { 40 };
+	case "Seaport": { 32 };
 	case "Outpost": { 35 };
+	case "Factory": { 28 };
 	default { 25 };
 };
 

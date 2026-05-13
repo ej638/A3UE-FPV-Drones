@@ -10,7 +10,7 @@ This phase plan is complete when all of the following are true:
 
 - the Antistasi Extender feature is implemented end-to-end;
 - the runtime has zero hard dependency on ArmaFPV, fpv_ua, or frtz_fiberoptic_kvn;
-- the manager deploys supported FPV drones only from active `Airport`, `Outpost`, and `Resource` sites;
+- the manager deploys supported FPV drones only from active `Airport`, `Milbase`, `Seaport`, `Outpost`, `Factory`, and `Resource` sites;
 - exactly one drone controller runs per managed drone on the current locality owner;
 - pre-impact detonation works reliably and does not depend on physical collision;
 - radio-link families handle degraded or denied link states correctly;

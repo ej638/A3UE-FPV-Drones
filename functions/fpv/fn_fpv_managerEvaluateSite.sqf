@@ -1,7 +1,10 @@
 params ["_markerX", "_locationType", "_isSpawning"];
 
 if (!isServer) exitWith {false};
-if !(_locationType in ["Airport", "Outpost", "Resource"]) exitWith {false};
+
+private _siteType = [_markerX, _locationType] call A3UE_fnc_fpv_resolveSiteType;
+if (_siteType isEqualTo "") exitWith {false};
+_locationType = _siteType;
 
 private _registry = missionNamespace getVariable ["A3UE_FPV_registry", createHashMap];
 private _existingEntry = _registry getOrDefault [_markerX, createHashMap];

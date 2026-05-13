@@ -15,6 +15,7 @@ class CfgFunctions {
             class addFPVEventListeners { postInit = 1; };
             class fpv_buildCompatCatalog {};
             class fpv_buildDoctrine {};
+            class fpv_resolveSiteType {};
             class fpv_emptyImpactSolution {};
             class fpv_evaluateImpactWindow {};
             class fpv_getProfile {};

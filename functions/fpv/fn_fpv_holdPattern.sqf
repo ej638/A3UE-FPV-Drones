@@ -14,14 +14,20 @@ if (!(_searchHeight isEqualType 0)) then {
 if (_searchHeight < 0) then {
 	_searchHeight = switch (_siteType) do {
 		case "Airport": { 45 };
+		case "Milbase": { 40 };
+		case "Seaport": { 32 };
 		case "Outpost": { 35 };
+		case "Factory": { 28 };
 		default { 25 };
 	};
 };
 
 private _holdRadius = switch (_siteType) do {
 	case "Airport": { 300 };
+	case "Milbase": { 260 };
+	case "Seaport": { 220 };
 	case "Outpost": { 180 };
+	case "Factory": { 150 };
 	default { 120 };
 };
 

@@ -43,7 +43,7 @@ That means the addon already has a credible autonomous chase controller, but its
 - registers Antistasi listeners for `locationSpawned` and `AIVehInit`
 - refreshes already-managed drones so late registration and JIP clients can bootstrap active drones
 
-`fn_fpv_managerEvaluateSite.sqf` and `fn_fpv_managerSpawnDrone.sqf` provide the server-owned spawn path. For each eligible `Airport`, `Outpost`, or `Resource` site, the server:
+`fn_fpv_managerEvaluateSite.sqf` and `fn_fpv_managerSpawnDrone.sqf` provide the server-owned spawn path. For each eligible `Airport`, `Milbase`, `Seaport`, `Outpost`, `Factory`, or `Resource` site, the server:
 
 - resolves family and payload role from doctrine
 - selects a compatible UAV class
@@ -102,11 +102,17 @@ This is not a waypoint graph or obstacle-aware route planner. The search model i
 - choose a center from the site marker, otherwise the UAV position
 - choose a search height by site type
   - `Airport`: `45m`
+  - `Milbase`: `40m`
+  - `Seaport`: `32m`
   - `Outpost`: `35m`
+  - `Factory`: `28m`
   - `Resource`: `25m`
 - choose a hold radius by site type
   - `Airport`: `300m`
+  - `Milbase`: `260m`
+  - `Seaport`: `220m`
   - `Outpost`: `180m`
+  - `Factory`: `150m`
   - `Resource`: `120m`
 - every `5` seconds, issue a new random `doMove` point on that ring
 
