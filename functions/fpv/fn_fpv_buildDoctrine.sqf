@@ -317,6 +317,12 @@ _siteSearchProfiles set ["Factory", createHashMapFromArray [
 	["localSearchRadius", 240],
 	["searchHeightAGL", 28]
 ]];
+_siteSearchProfiles set ["RivalsSupport", createHashMapFromArray [
+	["searchRadius", 900],
+	["localSearchRadius", 300],
+	["searchHeightAGL", 55],
+	["holdRadius", 260]
+]];
 
 private _siteLostTargetProfiles = createHashMapFromArray [
 	["Airport", createHashMapFromArray [
@@ -357,6 +363,12 @@ _siteLostTargetProfiles set ["Factory", createHashMapFromArray [
 	["lostTargetConeHalfAngle", 28],
 	["lostTargetClimbAGL", 12]
 ]];
+_siteLostTargetProfiles set ["RivalsSupport", createHashMapFromArray [
+	["lostTargetRadius", 220],
+	["lostTargetTTL", 5],
+	["lostTargetConeHalfAngle", 35],
+	["lostTargetClimbAGL", 18]
+]];
 
 private _siteTrackBreakOffsets = createHashMapFromArray [
 	["Airport", 700],
@@ -367,6 +379,7 @@ private _siteTrackBreakOffsets = createHashMapFromArray [
 _siteTrackBreakOffsets set ["Milbase", 625];
 _siteTrackBreakOffsets set ["Seaport", 600];
 _siteTrackBreakOffsets set ["Factory", 500];
+_siteTrackBreakOffsets set ["RivalsSupport", 812]; // trackBreakDistance 900 = terminalGateDistance 88 + 812
 
 private _siteLeadDistanceCaps = createHashMapFromArray [
 	["Airport", 650],
@@ -377,6 +390,7 @@ private _siteLeadDistanceCaps = createHashMapFromArray [
 _siteLeadDistanceCaps set ["Milbase", 610];
 _siteLeadDistanceCaps set ["Seaport", 590];
 _siteLeadDistanceCaps set ["Factory", 535];
+_siteLeadDistanceCaps set ["RivalsSupport", 750];
 
 private _siteLeadTimeOffsets = createHashMapFromArray [
 	["Airport", 0.00],
@@ -387,6 +401,7 @@ private _siteLeadTimeOffsets = createHashMapFromArray [
 _siteLeadTimeOffsets set ["Milbase", -0.10];
 _siteLeadTimeOffsets set ["Seaport", -0.12];
 _siteLeadTimeOffsets set ["Factory", -0.28];
+_siteLeadTimeOffsets set ["RivalsSupport", 0.05];
 
 private _terminalSteeringDistances = createHashMapFromArray [
 	["Airport", createHashMapFromArray [
@@ -420,6 +435,11 @@ _terminalSteeringDistances set ["Factory", createHashMapFromArray [
 	["armafpv", 80],
 	["kvn", 76],
 	["fpv_ua", 72]
+]];
+_terminalSteeringDistances set ["RivalsSupport", createHashMapFromArray [
+	["armafpv", 88],
+	["kvn", 84],
+	["fpv_ua", 80]
 ]];
 
 private _terminalVectorTuningBySite = createHashMapFromArray [
@@ -560,6 +580,7 @@ private _terminalVectorTuningBySite = createHashMapFromArray [
 _terminalVectorTuningBySite set ["Milbase", [_terminalVectorTuningBySite getOrDefault ["Airport", createHashMap]] call _copyMap];
 _terminalVectorTuningBySite set ["Seaport", [_terminalVectorTuningBySite getOrDefault ["Outpost", createHashMap]] call _copyMap];
 _terminalVectorTuningBySite set ["Factory", [_terminalVectorTuningBySite getOrDefault ["Resource", createHashMap]] call _copyMap];
+_terminalVectorTuningBySite set ["RivalsSupport", [_terminalVectorTuningBySite getOrDefault ["Airport", createHashMap]] call _copyMap];
 
 private _familyBehaviorDefaults = createHashMapFromArray [
 	["armafpv", createHashMapFromArray [
@@ -840,6 +861,26 @@ _behaviorAuthoring set ["Factory", [
 	]]
 ]];
 
+// RivalsSupport: flat authored values across all roles per family.
+// Family speed caps in _buildBehaviorProfile naturally reduce fpv_ua and kvn.
+_behaviorAuthoring set ["RivalsSupport", [
+	["armafpv", [
+		["AT",    [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]],
+		["AP",    [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]],
+		["RECON", [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]]
+	]],
+	["kvn", [
+		["AT",    [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]],
+		["AP",    [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]],
+		["RECON", [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]]
+	]],
+	["fpv_ua", [
+		["AT",    [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]],
+		["AP",    [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]],
+		["RECON", [["trackingSpeed", 150], ["terminalSpeed", 178], ["terminalGateDistance", 88], ["detonationDistance", 12]]]
+	]]
+]];
+
 private _buildBehaviorProfile = {
 	params ["_siteType", "_familyId", "_roleId", ["_authoredSpecs", []]];
 
@@ -1089,6 +1130,55 @@ private _buildBehaviorProfile = {
 	["Factory", 0.30, [1, 2], [["AT", 20], ["AP", 40], ["RECON", 40]], [["armafpv", 30], ["fpv_ua", 40], ["kvn", 30]]],
 	["Resource", 0.25, [1, 1], [["AT", 15], ["AP", 45], ["RECON", 40]], [["armafpv", 35], ["fpv_ua", 35], ["kvn", 30]]]
 ];
+
+missionNamespace setVariable ["A3UE_FPV_doctrine", _doctrine];
+
+// --- RivalsSupport doctrine entry -------------------------------------------
+// Built after the site forEach so all helper maps are fully populated.
+private _rivalsClassPools = ["RivalsSupport"] call _buildSiteClassPools;
+
+private _rivalsBehaviorProfiles = createHashMap;
+{
+	private _familyId = _x;
+	if (count (_catalog getOrDefault [_familyId, createHashMap]) > 0) then {
+		private _familyProfileMap = createHashMap;
+		private _rivalsAuthoredFamily = (_behaviorAuthoring getOrDefault ["RivalsSupport", []])
+			select {(_x param [0, ""]) isEqualTo _familyId};
+		private _rivalsRoleSpecs = if (_rivalsAuthoredFamily isNotEqualTo []) then {
+			(_rivalsAuthoredFamily select 0) param [1, []]
+		} else {
+			[]
+		};
+		{
+			private _roleId = _x;
+			private _roleAuthoredSpecs = (_rivalsRoleSpecs select {(_x param [0, ""]) isEqualTo _roleId})
+				apply {_x param [1, []]};
+			private _authored = if (_roleAuthoredSpecs isNotEqualTo []) then {_roleAuthoredSpecs select 0} else {[]};
+			_familyProfileMap set [_roleId, ["RivalsSupport", _familyId, _roleId, _authored] call _buildBehaviorProfile];
+		} forEach ["AT", "AP", "RECON"];
+		_rivalsBehaviorProfiles set [_familyId, _familyProfileMap];
+	};
+} forEach ["armafpv", "fpv_ua", "kvn"];
+
+private _rivalsFamilyWeights = createHashMap;
+{
+	_x params ["_familyId", "_weight"];
+	if (count (_catalog getOrDefault [_familyId, createHashMap]) > 0) then {
+		_rivalsFamilyWeights set [_familyId, _weight];
+	};
+} forEach [["armafpv", 30], ["fpv_ua", 40], ["kvn", 30]];
+
+_doctrine set ["RivalsSupport", createHashMapFromArray [
+	["profileId",    "rivals_support_default"],
+	["roleWeights",  createHashMapFromArray [["AT", 35], ["AP", 50], ["RECON", 15]]],
+	["familyWeights", _rivalsFamilyWeights],
+	["classPools",   _rivalsClassPools],
+	["behavior",     createHashMapFromArray [
+		["search",     [_siteSearchProfiles    getOrDefault ["RivalsSupport", createHashMap]] call _copyMap],
+		["lostTarget", [_siteLostTargetProfiles getOrDefault ["RivalsSupport", createHashMap]] call _copyMap],
+		["profiles",   _rivalsBehaviorProfiles]
+	]]
+]];
 
 missionNamespace setVariable ["A3UE_FPV_doctrine", _doctrine];
 

@@ -3,6 +3,28 @@ private _registrySnapshot = [];
 private _loadedMods = missionNamespace getVariable ["A3UE_FPV_loadedMods", createHashMap];
 private _catalog = missionNamespace getVariable ["A3UE_FPV_catalog", createHashMap];
 private _recentDetonations = missionNamespace getVariable ["A3UE_FPV_recentDetonations", []];
+
+// --- Rivals hook and active-event state -------------------------------------
+private _rivalsHooksInstalled  = missionNamespace getVariable ["A3UE_FPV_rivalsHooksInstalled", false];
+private _rivalsActiveEvent     = missionNamespace getVariable ["A3UE_FPV_rivalsActiveEvent", createHashMap];
+private _rivalsEventActive     = count _rivalsActiveEvent > 0;
+private _rivalsActiveEventSnapshot = createHashMap;
+if (_rivalsEventActive) then {
+	private _eventDrones   = _rivalsActiveEvent getOrDefault ["drones", []];
+	private _aliveDrones   = _eventDrones select { !isNull _x && { alive _x } };
+	_rivalsActiveEventSnapshot = createHashMapFromArray [
+		["eventId",      _rivalsActiveEvent getOrDefault ["eventId",      ""]],
+		["originPosATL", _rivalsActiveEvent getOrDefault ["originPosATL", []]],
+		["launchPosATL", _rivalsActiveEvent getOrDefault ["launchPosATL", []]],
+		["searchMarker", _rivalsActiveEvent getOrDefault ["searchMarker", ""]],
+		["droneCount",   count _eventDrones],
+		["aliveCount",   count _aliveDrones],
+		["droneNetIds",  _eventDrones apply { if (isNull _x) then { "" } else { netId _x } }],
+		["startedAt",    _rivalsActiveEvent getOrDefault ["startedAt",    -1]],
+		["notified",     _rivalsActiveEvent getOrDefault ["notified",     false]],
+		["hookMode",     _rivalsActiveEvent getOrDefault ["hookMode",     ""]]
+	];
+};
 private _loadedFamilies = [];
 private _catalogFamilies = [];
 private _directHitModes = ["DIRECT_BODY", "DIRECT_HULL", "DIRECT_STATIC"];
@@ -716,5 +738,10 @@ createHashMapFromArray [
 	]],
 	["recentDetonations", _recentDetonationSnapshot],
 	["registry", _registrySnapshot],
-	["managedDrones", _managedDrones]
+	["managedDrones", _managedDrones],
+	["rivalsSummary", createHashMapFromArray [
+		["hooksInstalled", _rivalsHooksInstalled],
+		["eventActive",    _rivalsEventActive],
+		["activeEvent",    _rivalsActiveEventSnapshot]
+	]]
 ]

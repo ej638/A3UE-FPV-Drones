@@ -26,6 +26,7 @@ class CfgFunctions {
             class fpv_selectClassForRole {};
             class fpv_managerEvaluateSite {};
             class fpv_managerSpawnDrone {};
+            class fpv_spawnManagedDrone {};
             class fpv_cleanupDrone {};
             class fpv_unregisterDrone {};
             class fpv_refreshManagedDrones {};
@@ -52,6 +53,11 @@ class CfgFunctions {
             class fpv_evaluateLinkState {};
             class fpv_startFiberTrailCompat {};
             class fpv_updateFiberTrailCompat {};
+            class fpv_installRivalsHooks {};
+            class fpv_rivalsEventAvailable {};
+            class fpv_rivalsSelectAndExecuteEvent {};
+            class fpv_rivalsUavFlyby {};
+            class fpv_rivalsEventExecute {};
         };
     };
 };

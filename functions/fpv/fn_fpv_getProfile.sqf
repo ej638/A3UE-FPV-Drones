@@ -70,6 +70,6 @@ private _profile = createHashMap;
 			_candidate
 		};
 	};
-} forEach ["Airport", "Milbase", "Seaport", "Outpost", "Factory", "Resource"];
+} forEach (keys _doctrine);
 
 _profile

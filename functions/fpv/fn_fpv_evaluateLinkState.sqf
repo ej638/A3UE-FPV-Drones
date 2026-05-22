@@ -19,10 +19,16 @@ private _retranslatorClass = _familyData getOrDefault ["retranslatorClass", ""];
 private _jammerClasses = _familyData getOrDefault ["jammerClasses", []];
 
 private _siteMarker = _uav getVariable ["A3UE_FPV_siteMarker", ""];
-private _controlPosAtl = if (_siteMarker isEqualTo "") then {
-	getPosATL _uav
-} else {
-	getMarkerPos _siteMarker
+
+// Prefer explicit radio-control node (set for rival drones and future site overrides).
+// Fall back to current siteMarker-based logic for existing site stock.
+private _controlPosAtl = _uav getVariable ["A3UE_FPV_controlPosATL", []];
+if (_controlPosAtl isEqualTo []) then {
+	_controlPosAtl = if (_siteMarker isEqualTo "") then {
+		getPosATL _uav
+	} else {
+		getMarkerPos _siteMarker
+	};
 };
 
 if (_controlPosAtl isEqualTo [0, 0, 0]) then {

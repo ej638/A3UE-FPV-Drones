@@ -4,7 +4,14 @@ Date: 2026-05-12
 
 ## Scope
 
-This document is the single analysis and design reference for adding FPV drones as a Rival support threat in Antistasi Ultimate.
+This document is the broad analysis reference for adding FPV drones as a Rival support threat in Antistasi Ultimate.
+
+For implementation, use these generated documents as authoritative build references:
+
+- `docs/generated/FPV_Rivals_Event_Integration_Assessment.md`
+- `docs/generated/FPV_Rivals_UAVGRENADE_Integration_Design.md`
+
+Those generated documents supersede the AU-editable recommendations preserved here and define the accepted addon-only `UAVGRENADE` wrapper path.
 
 It covers:
 
@@ -22,12 +29,12 @@ Antistasi Ultimate has two different hostile-response systems:
 
 That split matters for FPV integration. The clean insertion point for FPV drones is the rivals event selector, not the generic AU support registry.
 
-The recommended path is:
+The accepted path is:
 
-1. add FPV as a rival event available only at `INTRUSIVE_ACTIVITY` and `OMNIPRESENT_ACTIVITY`;
-2. add a small AU-side hook or registry for custom rival events, or patch one explicit FPV event into the selector as a fast path;
+1. keep the existing `UAVGRENADE` rival slot as the integration target;
+2. install addon-owned runtime wrappers around the selector and UAV handler instead of editing AU source;
 3. reuse the current A3UE managed-drone bootstrap, controller, and compatibility stack once the rival drone exists;
-4. add a rival-specific A3UE spawn path that uses `A3A_fnc_RivalsCreateVehicleCrew` rather than the standard crew helper.
+4. use a rival-specific direct-bootstrap spawn path that uses `A3A_fnc_RivalsCreateVehicleCrew` plus addon-owned post-crew unit initialization, while bypassing `A3A_fnc_AIVEHinit` for transient rival drones.
 
 ## Relevant Code Anchors
 
@@ -157,7 +164,7 @@ Trying to force FPV into the generic support map would require broader AU surger
 - `fn_fpv_bootstrapLocal.sqf` already installs locality, deletion, and MPKilled handlers and starts the owner-local controller.
 - `fn_fpv_applyCompatInit.sqf` already repairs vendor mods that disable AI.
 - `fn_fpv_selectTarget.sqf` already prefers `teamPlayer` when the drone side is hostile to rebels.
-- `fn_fpv_getProfile.sqf` can resolve arbitrary doctrine keys if a new doctrine entry such as `RivalsSupport` exists.
+- `fn_fpv_getProfile.sqf` already resolves doctrine by stamped `siteType`, and only needs a small fallback update if engineering wants `profileId`-only recovery for new keys such as `RivalsSupport`.
 - the current metadata-before-`AIVEHinit` ordering allows the existing bootstrap listener to recognize new managed drones automatically.
 
 ### What cannot be reused unchanged
@@ -174,6 +181,8 @@ The current AU event registry exposes events such as `AIVehInit`, `locationSpawn
 That matters because `A3A_Events_fnc_triggerEvent` is an observer-style dispatcher. Existing listeners can consume an event that already exists, but they cannot cleanly append a new rival event into the local event array inside `SCRT_fnc_rivals_selectAndExecuteEvent` without at least one AU-side hook.
 
 ## Recommended Technical Design
+
+Under the current repository constraint that nothing under `external/` may change, treat the AU-side options below as historical comparison only. Engineering should implement the addon-only wrapper path defined in the generated design documents.
 
 ### AU-side options
 
@@ -268,16 +277,17 @@ Suggested characteristics:
 - faster, more aggressive pursuit tuning;
 - stock of `[1, 2]` with activity-gated scaling.
 
-#### 5. Use rival-specific crew creation
+#### 5. Use rival-specific crew creation and direct bootstrap
 
 The rival path should use:
 
 ```sqf
 private _crewGroup = [Rivals, _uav] call A3A_fnc_RivalsCreateVehicleCrew;
-[_uav, Rivals, "event"] call A3A_fnc_AIVEHinit;
 ```
 
 and not the standard `A3A_fnc_createVehicleCrew` path.
+
+For the accepted addon-only implementation, that crew fill is followed by addon-owned `postCrewInit` logic that stamps `isRival` and `unitType` on any missing crew state and then calls `A3A_fnc_NATOinit` on the crew with empty-marker, non-spawner, `legacy` semantics. The transient rival drone itself should not be routed through `A3A_fnc_AIVEHinit`.
 
 #### 6. Keep bootstrap ordering unchanged
 
@@ -286,7 +296,8 @@ The rival helper must preserve the existing order:
 1. create vehicle;
 2. stamp `A3UE_FPV_*` metadata;
 3. create rival crew;
-4. call `A3A_fnc_AIVEHinit`.
+4. finalize rival crew state through addon-owned `postCrewInit`;
+5. direct-bootstrap the managed drone through A3UE without using `A3A_fnc_AIVEHinit` on the rival path.
 
 ## Warning UX and Cleanup
 
@@ -311,29 +322,32 @@ The event should mirror existing rival-event cleanup:
 
 ### AU files that would need changes
 
-Fast path minimum:
+Accepted addon-only path:
+
+- none.
+
+Historical AU-editable path:
 
 - `A3A\addons\scrt\Rivals\Constants.inc`
 - `A3A\addons\scrt\Rivals\fn_rivals_selectAndExecuteEvent.sqf`
 - `A3A\addons\scrt\Stringtable.xml`
 
-Preferred extensible path:
-
-- the files above;
-- one new rivals registry/helper function and its `CfgFunctions` entry;
-- optionally one new AU event definition if explicit rival-event telemetry is desired for extenders.
-
 ### A3UE files that would need changes
 
 - `config.cpp`
 - `functions/fpv/fn_addFPVEventListeners.sqf`
+- `functions/fpv/fn_fpv_installRivalsHooks.sqf`
+- `functions/fpv/fn_fpv_rivalsSelectAndExecuteEvent.sqf`
+- `functions/fpv/fn_fpv_rivalsUavFlyby.sqf`
 - `functions/fpv/fn_fpv_managerSpawnDrone.sqf`
 - `functions/fpv/fn_fpv_buildDoctrine.sqf`
+- `functions/fpv/fn_fpv_getProfile.sqf`
+- `stringtable.xml`
 - new A3UE functions:
   - `fn_fpv_spawnManagedDrone.sqf`
   - `fn_fpv_rivalsEventAvailable.sqf`
   - `fn_fpv_rivalsEventExecute.sqf`
-  - `fn_fpv_rivalsNotifyPlayers.sqf`
+  - optional `fn_fpv_rivalsNotifyPlayers.sqf`
 
 ## Not Recommended Approaches
 
@@ -347,7 +361,7 @@ The most coherent implementation path is:
 
 1. add FPV drones as a rival event, not as a generic support type;
 2. gate that event explicitly to `INTRUSIVE_ACTIVITY` and `OMNIPRESENT_ACTIVITY`;
-3. add either a direct selector patch or, preferably, a small AU custom-rival-event registry;
-4. add a rival-specific A3UE spawn and orchestration path that reuses the existing managed-drone bootstrap and controller stack while using rival-specific doctrine and crew creation.
+3. keep the existing `UAVGRENADE` slot and install addon-owned wrappers rather than patching AU source;
+4. add a rival-specific A3UE spawn and orchestration path that reuses the existing managed-drone bootstrap and controller stack while using rival-specific doctrine, rival crew creation, addon-owned post-crew unit init, and direct bootstrap.
 
-That preserves the current A3UE runtime work, fits AU's existing rival architecture, and avoids a much larger rewrite of AU's generic support system.
+That preserves the current A3UE runtime work, fits AU's existing rival architecture, avoids AU source edits entirely, and avoids a much larger rewrite of AU's generic support system.

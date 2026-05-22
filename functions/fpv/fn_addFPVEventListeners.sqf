@@ -46,3 +46,7 @@ call A3UE_fnc_fpv_refreshManagedDrones;
 
 missionNamespace setVariable ["A3UE_FPV_registrationComplete", true];
 missionNamespace setVariable ["A3UE_FPV_registrationPending", false];
+
+if (isServer) then {
+	call A3UE_fnc_fpv_installRivalsHooks;
+};

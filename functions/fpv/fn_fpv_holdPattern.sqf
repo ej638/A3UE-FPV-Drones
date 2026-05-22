@@ -22,13 +22,16 @@ if (_searchHeight < 0) then {
 	};
 };
 
-private _holdRadius = switch (_siteType) do {
-	case "Airport": { 300 };
-	case "Milbase": { 260 };
-	case "Seaport": { 220 };
-	case "Outpost": { 180 };
-	case "Factory": { 150 };
-	default { 120 };
+private _holdRadius = [_profile, "holdRadius", -1] call A3UE_fnc_fpv_profileValue;
+if (!(_holdRadius isEqualType 0) || {_holdRadius < 0}) then {
+	_holdRadius = switch (_siteType) do {
+		case "Airport": { 300 };
+		case "Milbase": { 260 };
+		case "Seaport": { 220 };
+		case "Outpost": { 180 };
+		case "Factory": { 150 };
+		default { 120 };
+	};
 };
 
 private _centerPos = if (_siteMarker isEqualTo "") then {
