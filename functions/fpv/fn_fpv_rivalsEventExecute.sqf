@@ -327,12 +327,13 @@ if (_fpvActivityDescription isEqualTo "") then {
 			});
 
 			// Update notified flag in the active-event state.
+			// The while loop guard at the top of the next tick will detect
+			// notified = true and exit cleanly without needing exitWith here.
 			private _updState = missionNamespace getVariable ["A3UE_FPV_rivalsActiveEvent", createHashMap];
 			if (count _updState > 0 && { (_updState getOrDefault ["eventId", ""]) isEqualTo _evtId }) then {
 				_updState set ["notified", true];
 				missionNamespace setVariable ["A3UE_FPV_rivalsActiveEvent", _updState];
 			};
-			exitWith {};
 		};
 	};
 };
