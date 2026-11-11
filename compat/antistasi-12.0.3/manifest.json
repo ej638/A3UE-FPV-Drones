@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "version": "12.0.3",
+  "reviewed": "2026-10-06",
+  "source": "Supplied A3-Antistasi-Ultimate-12.0.3 reference; reviewed source only, not engine qualification",
+  "normalization": "UTF-8 without BOM; CRLF -> LF; exactly one terminal LF. All other bytes preserved.",
+  "overrides": [
+    {
+      "name": "singleAttack",
+      "category": "CREATE",
+      "upstream": "functions/CREATE/fn_singleAttack.sqf",
+      "adapter": "addons/drones/functions/fpv/au_overrides/fn_singleAttack.sqf",
+      "patch": "changes/singleAttack.patch",
+      "upstream_sha256_lf": "39d11de53537a73431ffa5f26bb2083bb9eaf1b7cd8e0e1289e965ca0ef4751b",
+      "upstream_sha256_bytes": "39d11de53537a73431ffa5f26bb2083bb9eaf1b7cd8e0e1289e965ca0ef4751b",
+      "intent": "Validated non-JIP server/admin/HC entry and scheduled fallback; no-pack delegation preserves stock HC distribution. FPV-capable path retains server coordination, context-aware cost substitution and conventional force floor. AU logs and cleanup retained."
+    },
+    {
+      "name": "wavedAttack",
+      "category": "CREATE",
+      "upstream": "functions/CREATE/fn_wavedAttack.sqf",
+      "adapter": "addons/drones/functions/fpv/au_overrides/fn_wavedAttack.sqf",
+      "patch": "changes/wavedAttack.patch",
+      "upstream_sha256_lf": "d66fa996cd86420a5a9457481d388d48f7b660ab760afe83f92d79dbab545f81",
+      "upstream_sha256_bytes": "d66fa996cd86420a5a9457481d388d48f7b660ab760afe83f92d79dbab545f81",
+      "intent": "No-pack stock delegation. FPV counted/selected once per legal hostile objective, private MajorAttackSupport context. All conventional choices, support-failure exitWith, tasks, debit and cleanup remain upstream."
+    },
+    {
+      "name": "attackHQ",
+      "category": "CREATE",
+      "upstream": "functions/CREATE/fn_attackHQ.sqf",
+      "adapter": "addons/drones/functions/fpv/au_overrides/fn_attackHQ.sqf",
+      "patch": "changes/attackHQ.patch",
+      "upstream_sha256_lf": "a13f2853d1476e74a66fcf6bf46c16816ab3b6294cf26cab8e9514aa02ecbeac",
+      "upstream_sha256_bytes": "a13f2853d1476e74a66fcf6bf46c16816ab3b6294cf26cab8e9514aa02ecbeac",
+      "intent": "No-pack stock delegation. Private rebel HQAttackSupport attempt before stock UAV fallback. Original support-name vehicle-count formula, task/timing/artillery/retreat unchanged."
+    },
+    {
+      "name": "invaderPunish",
+      "category": "CREATE",
+      "upstream": "functions/CREATE/fn_invaderPunish.sqf",
+      "adapter": "addons/drones/functions/fpv/au_overrides/fn_invaderPunish.sqf",
+      "patch": "changes/invaderPunish.patch",
+      "upstream_sha256_lf": "1288cf639fe390fd5097fbc3e24277c8472b8a88051e3d86d8c4684616586888",
+      "upstream_sha256_bytes": "1288cf639fe390fd5097fbc3e24277c8472b8a88051e3d86d8c4684616586888",
+      "intent": "No-pack stock delegation. Private rebel PunishmentSupport addition before original conventional city package. Stock guards, budget, task, timing, city consequences and cleanup retained."
+    },
+    {
+      "name": "showInterceptedSetupCall",
+      "category": "Supports",
+      "upstream": "functions/Supports/fn_showInterceptedSetupCall.sqf",
+      "adapter": "addons/drones/functions/fpv/au_overrides/fn_showInterceptedSetupCall.sqf",
+      "patch": "changes/showInterceptedSetupCall.patch",
+      "upstream_sha256_lf": "e2a7227af2ac053ac8a8da6055ab90198df691a62d38f1aa00442f2906558388",
+      "upstream_sha256_bytes": "e2a7227af2ac053ac8a8da6055ab90198df691a62d38f1aa00442f2906558388",
+      "intent": "Thin FPV-only setup wording and arrival classification. Every non-FPV type delegates to cached loaded AU source without another stock switch."
+    },
+    {
+      "name": "showInterceptedSupportCall",
+      "category": "Supports",
+      "upstream": "functions/Supports/fn_showInterceptedSupportCall.sqf",
+      "adapter": "addons/drones/functions/fpv/au_overrides/fn_showInterceptedSupportCall.sqf",
+      "patch": "changes/showInterceptedSupportCall.patch",
+      "upstream_sha256_lf": "eaef045b5aa03549638f8a37500c8841ea48724c7487f6846d5c9f92e2f492e7",
+      "upstream_sha256_bytes": "eaef045b5aa03549638f8a37500c8841ea48724c7487f6846d5c9f92e2f492e7",
+      "intent": "Thin FPV-only execute wording/marker label with original reveal/delivery/marker cleanup behavior. Every non-FPV type delegates to cached loaded AU source."
+    }
+  ],
+  "contracts": [
+    {
+      "path": "CfgFunctions.hpp",
+      "sha256_lf": "37712d01ddbfb5e66f452a163f9143aeee9a413df9355453c807ef24df289753"
+    },
+    {
+      "path": "Includes/script_version.hpp",
+      "sha256_lf": "10ff661c8034173e2fc96972cb4b36b12cc8a3aa8a1c5fbd12cbb5e25a2a94c3"
+    },
+    {
+      "path": "functions/Supports/fn_createSupport.sqf",
+      "sha256_lf": "c0637234cff6904d7dc4588ab311f819325c3e075e6e4e35e44ea82f476e451f"
+    },
+    {
+      "path": "functions/Base/fn_scheduler.sqf",
+      "sha256_lf": "6613ba128680bbadbad0ae57db1dbbfc83812902c69d78a6824669824381db7c"
+    }
+  ],
+  "also_reviewed": [
+    {
+      "version": "12.4.1",
+      "reviewed": "2026-11-10",
+      "source": "Supplied A3-Antistasi-Ultimate-12.4.1 reference; all six override bodies, createSupport and scheduler byte-identical to 12.0.3. Impact review: docs/FPV_AU_12_4_1_Impact_Analysis_20261110.md. Source review only, not engine qualification.",
+      "contracts": [
+        {
+          "path": "CfgFunctions.hpp",
+          "sha256_lf": "89f8add88cba22962519b56d66bb023813ef818d4245d214191285e215d3e188"
+        },
+        {
+          "path": "Includes/script_version.hpp",
+          "sha256_lf": "c0f49d4f591238ab80d19ea342a0280ea15f064fcfb6bd64c9032e7f0dace900"
+        }
+      ]
+    }
+  ],
+  "build_headers": [
+    {
+      "path": "include/x/A3A/addons/core/Includes/cba_events.hpp",
+      "sha256_lf": "a9f17d762f9ef55de0bfc97e7d060bdf20ff7c157bcc921e52d3aad0677277bd"
+    },
+    {
+      "path": "include/x/A3A/addons/core/Includes/common.inc",
+      "sha256_lf": "8a819f700a8641dbc2cd0b4669ea8769ec6446897370d2b61818916fbc735658"
+    },
+    {
+      "path": "include/x/A3A/addons/core/Includes/LogMacros.inc",
+      "sha256_lf": "faf91d31943d1789a4bc703466012d1175880d1a5b04cc653ca0872363769057"
+    },
+    {
+      "path": "include/x/A3A/addons/core/Includes/script_macros.hpp",
+      "sha256_lf": "9394c2ec931c172cea8a7f5e8210e40615dab9bdd5373ba06ed00e99fde3b992"
+    },
+    {
+      "path": "include/x/A3A/addons/core/Includes/script_mod.hpp",
+      "sha256_lf": "d72e1289a744f76d7d5c99cd2b61818fc378c791bec25dd7d95a44c2ddc734f9"
+    },
+    {
+      "path": "include/x/A3A/addons/core/Includes/script_version.hpp",
+      "sha256_lf": "10ff661c8034173e2fc96972cb4b36b12cc8a3aa8a1c5fbd12cbb5e25a2a94c3"
+    },
+    {
+      "path": "include/x/A3A/addons/core/script_component.hpp",
+      "sha256_lf": "3fd283fe3cd9aca76c19d4a20af682dacba791c3ff7357fb5bf80e262b1d295f"
+    },
+    {
+      "path": "include/x/cba/addons/main/script_macros_common.hpp",
+      "sha256_lf": "00401ef5337f190be70673104c49869a0a7c8ad88755bba464e66cdedb35fbfe"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "source_build": "117650f8b83ae9ed8a9b62bf2da927bb1642f95b",
+  "handoff": "docs/FPV_F2_Target_Commitment_Engine_Card_20261102.md",
+  "candidate_pbo": "C:\\Users\\ejlav\\Documents\\GitHub\\A3UE-FPV-Drones\\.hemttout\\verification\\f2-target-commitment-20261102-001\\candidate-reviewed\\@A3UE-FPV-F2-Target-Commitment-20261102\\addons\\fpv_ai_drones.pbo",
+  "candidate_sha256": "2b2c0744ec4491b6db42f30f492e055c89200dd89a07aadbfe30197eddc4550e",
+  "rollback_pbo": "C:\\Users\\ejlav\\Documents\\GitHub\\A3UE-FPV-Drones\\.hemttout\\verification\\f2-target-commitment-20261102-001\\rollback\\@A3UE-FPV-F2-Coherent-Trajectory-20261030\\addons\\fpv_ai_drones.pbo",
+  "rollback_sha256": "1ca08ec4e77518bfa67831cde021ed70cf2af79184646660a3910a32b966ea60",
+  "parser_sha256": "882bc65afa54f5d3e552370e80901ce18bf576efba0524e65c24908ddb902d0a",
+  "missions": {
+    "staged": {
+      "path": "C:\\Users\\ejlav\\Documents\\GitHub\\A3UE-FPV-Drones\\.hemttout\\verification\\loaded-campaign-setup-20261013-001\\staged\\EJ_FPV_QA\\mpmissions\\FPV_Baseline.vt7",
+      "helpers": {
+        "scripts\\f2r\\arm.sqf": "f765f8168d71dd32ecd9f589ab733987ed4dcc0a4b2dfd7e31c13750aceb77eb",
+        "scripts\\f2r\\finish.sqf": "cd6291da6c4cf3fc383781a7ca6fbe251c84185cf1506d1fd3337114088ae0c6",
+        "scripts\\f2r\\fixture.sqf": "83dffd02d8bd618998a040247c95c2f124bebff3fd1aa3a1b51a40a8192dc4e8",
+        "scripts\\f2r\\layout.sqf": "597b93ac158d359626234f58628136bf446f281e4161718506af809a9cca063b",
+        "scripts\\f2r\\observer.sqf": "f99848c131240370e3f4b584d95149dfba82e812b9bf1cb527d9f28fd38c0a85",
+        "scripts\\f2r\\recipe.sqf": "c71fdd184738bb17ee25aca04801594a390455e9fb1a2e79fa3e1dba123f07d2",
+        "scripts\\f2r\\restore.sqf": "c64c4d1496264b3d1ba29e8b4c08046fd08ec92535ce5099dd3c48e6ef7853eb",
+        "scripts\\f2r\\runner.sqf": "774ae8ec803ae18b578d934e0a3686317ea2446e8fe698f07734774c4a29ab6f",
+        "scripts\\f2r\\state.sqf": "01e2fca78a58377490f2281be7b482dd31e17f8df47490bf7c0162b7287ba861",
+        "scripts\\f2r\\target_a.sqf": "3df1bcb7c9c1d4911e77219b77091a78035ad8efa1f520715b888eae6ab13cbd",
+        "scripts\\f2r\\target_b.sqf": "c1b4a715a12b760b452f61591cde678927f81d0fb2f93d37d2ecb6c8a0c98440",
+        "scripts\\f2r\\target_cleanup_a.sqf": "123984264012bfc1e90f84ac2fc560fb749cb6a00ab38c4047add0c16c994226",
+        "scripts\\f2r\\target_cleanup_b.sqf": "15e9bebc4913390cf5daca2571b9f4f8ad157fa93c283f30f51fa14604236348",
+        "scripts\\ua_dive\\capture.sqf": "8926ff7f811479f4e9d4402d8bfd81b6e3924f206f21f07649d2bfe1a4bed060",
+        "scripts\\ua_dive\\catalog.sqf": "3e610f772ed91ceba26774dc394c1a05fa682ca77b7411ee9b9de04e2885dd91",
+        "scripts\\ua_dive\\control.sqf": "2baf80584a16231d00207f408f0b11aacdc9059a6fe47464d15dc4491ee44be0",
+        "scripts\\ua_dive\\launch.sqf": "9dfa1171f40dd464af8e99945ad009276676cebc90fb0b3b090a8d3f53965219",
+        "scripts\\ua_dive\\target.sqf": "862c4232753857ac7a29a316bc09e4748ef00daecaffd20073686d95598b4174",
+        "scripts\\f2r\\player.sqf": "9400e2ceae5138ba243b1d73ca9579ecde8333c3cf29c4de74f82d62ad2fe5c9",
+        "scripts\\f2r\\player_restore.sqf": "f04a47463a38ee1ba43497972f6aae4bbc7f8fe98bd63cd4269368d4a1390e4a",
+        "scripts\\f2c\\arm.sqf": "36d3fe70516150bcf7adf48d4d1269b3609a285712b800ea48565af1d1a44ef7",
+        "scripts\\f2c\\runner.sqf": "00d058742453365f07a811b97ad575bc9acecf2252fab22e3c936f1c65399244",
+        "scripts\\f2c\\player.sqf": "a9e9a771385711a31734b4159f43098b3ed76bdc3df9d70fe2cf520978a16d5d"
+      }
+    },
+    "installed": {
+      "path": "C:\\Users\\ejlav\\Documents\\Arma 3 - Other Profiles\\EJ_FPV_QA\\mpmissions\\FPV_Baseline.vt7",
+      "helpers": {
+        "scripts\\f2r\\arm.sqf": "f765f8168d71dd32ecd9f589ab733987ed4dcc0a4b2dfd7e31c13750aceb77eb",
+        "scripts\\f2r\\finish.sqf": "cd6291da6c4cf3fc383781a7ca6fbe251c84185cf1506d1fd3337114088ae0c6",
+        "scripts\\f2r\\fixture.sqf": "83dffd02d8bd618998a040247c95c2f124bebff3fd1aa3a1b51a40a8192dc4e8",
+        "scripts\\f2r\\layout.sqf": "597b93ac158d359626234f58628136bf446f281e4161718506af809a9cca063b",
+        "scripts\\f2r\\observer.sqf": "f99848c131240370e3f4b584d95149dfba82e812b9bf1cb527d9f28fd38c0a85",
+        "scripts\\f2r\\recipe.sqf": "c71fdd184738bb17ee25aca04801594a390455e9fb1a2e79fa3e1dba123f07d2",
+        "scripts\\f2r\\restore.sqf": "c64c4d1496264b3d1ba29e8b4c08046fd08ec92535ce5099dd3c48e6ef7853eb",
+        "scripts\\f2r\\runner.sqf": "774ae8ec803ae18b578d934e0a3686317ea2446e8fe698f07734774c4a29ab6f",
+        "scripts\\f2r\\state.sqf": "01e2fca78a58377490f2281be7b482dd31e17f8df47490bf7c0162b7287ba861",
+        "scripts\\f2r\\target_a.sqf": "3df1bcb7c9c1d4911e77219b77091a78035ad8efa1f520715b888eae6ab13cbd",
+        "scripts\\f2r\\target_b.sqf": "c1b4a715a12b760b452f61591cde678927f81d0fb2f93d37d2ecb6c8a0c98440",
+        "scripts\\f2r\\target_cleanup_a.sqf": "123984264012bfc1e90f84ac2fc560fb749cb6a00ab38c4047add0c16c994226",
+        "scripts\\f2r\\target_cleanup_b.sqf": "15e9bebc4913390cf5daca2571b9f4f8ad157fa93c283f30f51fa14604236348",
+        "scripts\\packet_b_retention.sqf": "4c8b4bb324d8d328fe792b3cd3bd603c838484f3ead68dc7be5573db95495eb9",
+        "scripts\\ua_dive\\capture.sqf": "8926ff7f811479f4e9d4402d8bfd81b6e3924f206f21f07649d2bfe1a4bed060",
+        "scripts\\ua_dive\\catalog.sqf": "3e610f772ed91ceba26774dc394c1a05fa682ca77b7411ee9b9de04e2885dd91",
+        "scripts\\ua_dive\\control.sqf": "2baf80584a16231d00207f408f0b11aacdc9059a6fe47464d15dc4491ee44be0",
+        "scripts\\ua_dive\\launch.sqf": "5abc0b6d1159357ae05e9669b259726aab9df8c020b1524013722ca3b673d348",
+        "scripts\\ua_dive\\target.sqf": "862c4232753857ac7a29a316bc09e4748ef00daecaffd20073686d95598b4174",
+        "scripts\\f2r\\player.sqf": "9400e2ceae5138ba243b1d73ca9579ecde8333c3cf29c4de74f82d62ad2fe5c9",
+        "scripts\\f2r\\player_restore.sqf": "f04a47463a38ee1ba43497972f6aae4bbc7f8fe98bd63cd4269368d4a1390e4a",
+        "scripts\\f2c\\arm.sqf": "36d3fe70516150bcf7adf48d4d1269b3609a285712b800ea48565af1d1a44ef7",
+        "scripts\\f2c\\runner.sqf": "00d058742453365f07a811b97ad575bc9acecf2252fab22e3c936f1c65399244",
+        "scripts\\f2c\\player.sqf": "a9e9a771385711a31734b4159f43098b3ed76bdc3df9d70fe2cf520978a16d5d"
+      }
+    }
+  },
+  "required_loaded": [
+    {
+      "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Arma 3\\!Workshop\\@FPV Drone Crocus\\addons\\armafpv.pbo",
+      "sha256": "0ab4141a634c91b52857c950c5b1c0c06d2ac4d9a73a11767111f718a4868d33"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Arma 3\\!Workshop\\@Ukraine FPV Drone\\addons\\fpv_ua.pbo",
+      "sha256": "71871ad9e2866d709ae85845ea10506f29d0670340a2766a376eef7858f36903"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Arma 3\\!Workshop\\@Fiber-Optic FPV - Knyaz' Vandal Novgorodskiy (KVN)\\addons\\frtz_fiberoptic_kvn.pbo",
+      "sha256": "083c8455a84521e1962f241f1b5590940bab77aad1cc46b5ecd576fb66ce8d71"
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Arma 3\\!Workshop\\@Virolahti - Valtatie 7\\addons\\vt7.pbo",
+      "sha256": "5fdaa29b62e6a4694c46792336e8cea821b49d1b97d0248eb8fe2664485b6871"
+    }
+  ],
+  "engine": "NOT RUN",
+  "loaded_addon_path": "PENDING actual startup RPT"
+}

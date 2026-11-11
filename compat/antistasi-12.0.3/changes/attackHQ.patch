@@ -1,0 +1,43 @@
+--- upstream/functions/CREATE/fn_attackHQ.sqf
++++ addons/drones/functions/fpv/au_overrides/fn_attackHQ.sqf
+@@ -11,12 +11,17 @@
+     <SCALAR> Optional: Delay in seconds after creating the task (Default: Auto-calculated from balancePlayerScale)
+ */
+ 
+-#include "..\..\script_component.hpp"
++#include "\x\A3A\addons\core\script_component.hpp"
+ FIX_LINE_NUMBERS()
+ //Mission: HQ is under attack
+ if (!isServer) exitWith { Error("Server-only function miscalled") };
+ 
+-params ["_side", "_airbase", "_delay"];			// Side is now specified
++params ["_side", "_airbase", "_delay"];            // Side is now specified
++private _A3UE_FPV_contextAuthorized = true;
++// AU-04: no eligible pack uses the loaded stock body, including its RNG/locality.
++if (count (missionNamespace getVariable ["A3UE_FPV_catalog", createHashMap]) == 0) exitWith {
++    _this call (["attackHQ"] call A3UE_fnc_fpv_getStockAUFunction)
++};
+ private _targPos = markerPos "Synd_HQ";
+ private _faction = Faction(_side);
+ 
+@@ -44,7 +49,19 @@
+ 
+ // Send in a UAV. Add half a vehicle if they're unavailable
+ // ["_type", "_side", "_caller", "_maxSpend", "_target", "_targPos", "_reveal", "_delay"];
+-private _uavSupp = ["UAV", _side, "attack", 500, objNull, _targPos, 0, 0] call A3A_fnc_createSupport;
++private _fpvContext = createHashMapFromArray [
++    ["context", "HQAttackSupport"],
++    ["targetSide", teamPlayer],
++    ["originMarker", _airbase],
++    ["resourcePool", "attack"]
++];
++private _uavSupp = [_fpvContext, {
++    ["FPV", _side, "attack", 500, objNull, _targPos, 0, 0] call A3A_fnc_createSupport
++}] call A3UE_fnc_fpv_withSupportContext;
++
++if (_uavSupp isEqualTo "") then {
++    _uavSupp = ["UAV", _side, "attack", 500, objNull, _targPos, 0, 0] call A3A_fnc_createSupport;
++};
+ 
+ // Create the attacking force
+ private _vehCount = round (1 + random 1 + 2 * A3A_balancePlayerScale + ([0, 0.5] select (_uavSupp == "")));

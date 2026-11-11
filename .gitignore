@@ -1,2 +1,12 @@
 external/
-docs/generated/
+# Only the top-level files in docs/ are published. Every subfolder (internal design notes,
+# engine findings, evidence, prompts) stays local.
+docs/*/
+.hemttout/
+releases/
+*.biprivatekey
+*.hemttprivatekey
+__pycache__/
+# AI agent instructions are local only (they describe the private workflow).
+CLAUDE.md
+AGENTS.md

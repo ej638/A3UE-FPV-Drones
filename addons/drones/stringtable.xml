@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project name="A3UE-FPV-Drones">
+    <Package name="FPV">
+        <Key ID="STR_A3UE_FPV_RIVALS_ACTIVITY_DESCRIPTION">
+            <English>Hostile FPV drones inbound.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_NOTIFIERS_SUP_SETUP_FPV">
+            <English>Hostile FPV drone launch preparations detected from %1.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_NOTIFIERS_SUP_EXECUTE_FPV">
+            <English>Hostile FPV drones from %1 are inbound.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_NOTIFIERS_SUP_EXECUTE_FPV_MARKER">
+            <English>FPV drones</English>
+        </Key>
+    </Package>
+</Project>

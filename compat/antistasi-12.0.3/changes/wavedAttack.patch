@@ -1,0 +1,79 @@
+--- upstream/functions/CREATE/fn_wavedAttack.sqf
++++ addons/drones/functions/fpv/au_overrides/fn_wavedAttack.sqf
+@@ -11,10 +11,17 @@
+     <INTEGER> Maximum number of attack waves to send
+ */
+ 
+-#include "..\..\script_component.hpp"
++#include "\x\A3A\addons\core\script_component.hpp"
+ FIX_LINE_NUMBERS()
+ 
+ params ["_mrkDest", "_mrkOrigin", "_maxWaves"];
++private _A3UE_FPV_contextAuthorized = true;
++
++// AU-04: no eligible pack uses the loaded stock body, including its RNG/locality.
++if (count (missionNamespace getVariable ["A3UE_FPV_catalog", createHashMap]) == 0) exitWith {
++    _this call (["wavedAttack"] call A3UE_fnc_fpv_getStockAUFunction)
++};
++
+ 
+ Info_3("Creating waved attack against %1 from %2 with %3 waves", _mrkDest, _mrkOrigin, _maxWaves);
+ 
+@@ -71,7 +78,7 @@
+         {
+             _x params ["_supportName", "_suppSide", "_suppType", "_suppCenter", "_suppRadius", "_suppTarget"];
+             if (_suppSide != _side or _suppCenter distance2d _targpos > _suppRadius) then { continue };
+-            if (_suppType in ["UAV", "CAS", "CASDIVE", "ASF"]) then { _airSupports pushBack _suppType };
++            if (_suppType in ["UAV", "CAS", "CASDIVE", "ASF", "FPV"]) then { _airSupports pushBack _suppType };
+         } forEach A3A_activeSupports;
+ 
+         // Not ideal because it might have a dead gunner. Might need some proper vehicleCanFight function
+@@ -98,9 +105,12 @@
+ 
+     // Now add air supports up to the requirement
+     private _newAttackHelis = 0;
+-    for "_i" from 1 to _countNewSupport do 
++    for "_i" from 1 to _countNewSupport do
+     {
+         private _possibles = ["AH", 1];
++        if (!("FPV" in _airSupports) && {([_side, _targside] call A3UE_fnc_fpv_getHostileSides) isNotEqualTo []}) then {
++            _possibles append ["FPV", 0.8];
++        };
+         if !("UAV" in _airSupports) then { _possibles append ["UAV", 1] };
+         if !("CAS" in _airSupports) then { _possibles append ["CAS", 0.6] };
+ 	if !("CASDIVE" in _airSupports) then { _possibles append ["CASDIVE", 0.4] };
+@@ -110,7 +120,22 @@
+         if (_support == "AH") then { _newAttackHelis = _newAttackHelis + 1 }
+         else {
+             // ["_type", "_side", "_caller", "_maxSpend", "_target", "_targPos", "_reveal", "_delay"];
+-            private _suppName = [_support, _side, "attack", 500, objNull, _targPos, 0, 0] call A3A_fnc_createSupport;
++            private _suppName = "";
++
++            if (_support == "FPV") then {
++                private _fpvContext = createHashMapFromArray [
++                    ["context", "MajorAttackSupport"],
++                    ["originMarker", _mrkOrigin],
++                    ["targetSide", _targside],
++                    ["resourcePool", "attack"]
++                ];
++
++                _suppName = [_fpvContext, {
++                    ["FPV", _side, "attack", 500, objNull, _targPos, 0, 0] call A3A_fnc_createSupport
++                }] call A3UE_fnc_fpv_withSupportContext;
++            } else {
++                _suppName = [_support, _side, "attack", 500, objNull, _targPos, 0, 0] call A3A_fnc_createSupport;
++            };
+             if (_suppName == "") exitWith { _newAttackHelis = _newAttackHelis + 1 };
+             _airSupports pushBack _support;
+         };
+@@ -178,8 +203,8 @@
+ if (_victory) then {
+     if (_targSide != teamPlayer) exitWith {};
+     [_taskId, "rebelAttack", "FAILED"] call A3A_fnc_taskSetState;
+-    if (_targside == teamPlayer) then {  
+-        [-(round (5*tierWar)), theBoss] call A3A_fnc_addScorePlayer; 
++    if (_targside == teamPlayer) then {
++        [-(round (5*tierWar)), theBoss] call A3A_fnc_addScorePlayer;
+     };
+ } else {
+     [_mrkDest, _mrkOrigin] call A3A_fnc_minefieldAAF;

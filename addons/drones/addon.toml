@@ -1,0 +1,7 @@
+# Preserve the existing flat virtual prefix rather than HEMTT's z/... convention.
+ignore_pboprefix = true
+
+# This addon contains config/SQF/stringtable only; BI model binarization is unnecessary.
+# HEMTT still rapifies config.cpp to config.bin and checks all SQF.
+[binarize]
+enabled = false

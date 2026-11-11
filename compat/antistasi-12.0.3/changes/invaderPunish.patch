@@ -1,0 +1,41 @@
+--- upstream/functions/CREATE/fn_invaderPunish.sqf
++++ addons/drones/functions/fpv/au_overrides/fn_invaderPunish.sqf
+@@ -10,7 +10,7 @@
+     <STRING> Origin marker (should be airbase)
+     <SCALAR> Optional, delay in seconds before sending vehicles (Default: Auto-calculated)
+ */
+-#include "..\..\script_component.hpp"
++#include "\x\A3A\addons\core\script_component.hpp"
+ FIX_LINE_NUMBERS()
+ 
+ private _lowCiv = Faction(civilian) getOrDefault ["attributeLowCiv", false];
+@@ -26,6 +26,12 @@
+ };
+ 
+ params ["_mrkDest", "_mrkOrigin", "_delay"];
++private _A3UE_FPV_contextAuthorized = true;
++// AU-04: no eligible pack uses the loaded stock body, including its RNG/locality.
++if (count (missionNamespace getVariable ["A3UE_FPV_catalog", createHashMap]) == 0) exitWith {
++    _this call (["invaderPunish"] call A3UE_fnc_fpv_getStockAUFunction)
++};
++
+ 
+ ServerInfo_2("Launching CSAT Punishment Against %1 from %2", _mrkDest, _mrkOrigin);
+ 
+@@ -45,6 +51,16 @@
+ if (isNil "_delay") then {
+     _delay = 300 + 60 * (markerPos "Synd_HQ" distance2d _posDest) / 2000;            // +1 min per 2km
+ };
++
++private _fpvContext = createHashMapFromArray [
++    ["context", "PunishmentSupport"],
++    ["targetSide", teamPlayer],
++    ["originMarker", _mrkOrigin],
++    ["resourcePool", "attack"]
++];
++[_fpvContext, {
++    ["FPV", Invaders, "attack", 500, objNull, _posDest, 0, 0] call A3A_fnc_createSupport
++}] call A3UE_fnc_fpv_withSupportContext;
+ 
+ // Create the attacking force
+ // probably doesn't make much sense to aggro-scale this one as it's not a response

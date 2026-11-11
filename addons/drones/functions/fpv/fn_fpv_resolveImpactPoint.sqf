@@ -1,0 +1,321 @@
+params [
+	["_uav", objNull],
+	["_target", objNull],
+	["_profile", createHashMap]
+];
+
+if !(call A3UE_fnc_fpv_helperAccess) exitWith {createHashMap};
+
+if (isNull _uav || {isNull _target} || {!alive _target}) exitWith {
+	[_target, "NONE", "NO_TARGET"] call A3UE_fnc_fpv_emptyImpactSolution
+};
+
+private _configuredImpactMode = [_profile, "terminalImpactMode", "DIRECT_BODY"] call A3UE_fnc_fpv_profileValue;
+if !(_configuredImpactMode isEqualType "") then {
+	_configuredImpactMode = "DIRECT_BODY";
+};
+
+private _fallbackAllowed = [_profile, "impactFallbackAllowObstructionSurface", true] call A3UE_fnc_fpv_profileValue;
+if !(_fallbackAllowed isEqualType true) then {
+	_fallbackAllowed = true;
+};
+
+private _fallbackRadius = [_profile, "impactFallbackRadius", 0] call A3UE_fnc_fpv_profileValue;
+if (!(_fallbackRadius isEqualType 0) || {_fallbackRadius < 0}) then {
+	_fallbackRadius = 0;
+};
+
+private _groundOffset = [_profile, "impactFallbackGroundOffset", 0] call A3UE_fnc_fpv_profileValue;
+if (!(_groundOffset isEqualType 0) || {_groundOffset < 0}) then {
+	_groundOffset = 0;
+};
+
+private _infantryGroundLead = [_profile, "detonationInfantryGroundLead", 0] call A3UE_fnc_fpv_profileValue;
+if (!(_infantryGroundLead isEqualType 0) || {_infantryGroundLead < 0}) then {
+	_infantryGroundLead = 0;
+};
+
+private _uavPosAsl = getPosASL _uav;
+private _targetPosAsl = getPosASL _target;
+private _obstructionInfo = [_uav, _target] call A3UE_fnc_fpv_isTargetObstructed;
+private _targetObstructed = _obstructionInfo getOrDefault ["blocked", false];
+private _incomingVector = _targetPosAsl vectorDiff _uavPosAsl;
+private _incomingDir2D = [_incomingVector select 0, _incomingVector select 1, 0];
+private _incomingDir2DMag = vectorMagnitude _incomingDir2D;
+
+if (_incomingDir2DMag <= 0.01) then {
+	private _fallbackDir = vectorDir _uav;
+	_incomingDir2D = [_fallbackDir select 0, _fallbackDir select 1, 0];
+	_incomingDir2DMag = vectorMagnitude _incomingDir2D;
+};
+
+if (_incomingDir2DMag <= 0.01) then {
+	_incomingDir2D = [0, 1, 0];
+	_incomingDir2DMag = 1;
+};
+
+_incomingDir2D = _incomingDir2D vectorMultiply (1 / _incomingDir2DMag);
+
+private _targetVelocity = velocity _target;
+private _targetVelocity2D = [_targetVelocity select 0, _targetVelocity select 1, 0];
+private _targetVelocity2DMag = vectorMagnitude _targetVelocity2D;
+private _targetMoveDir2D = if (_targetVelocity2DMag > 0.1) then {
+	_targetVelocity2D vectorMultiply (1 / _targetVelocity2DMag)
+} else {
+	_incomingDir2D
+};
+private _isAirTarget = _target isKindOf "Air";
+private _isManTarget = _target isKindOf "Man";
+private _isStaticTarget = _target isKindOf "StaticWeapon";
+private _isVehicleTarget = (_target isKindOf "LandVehicle") || {_target isKindOf "Ship"};
+private _debugResolveTraceEnabled = (missionNamespace getVariable ["A3UE_FPV_debug", false]) && {_isManTarget};
+private _debugResolveEvents = [];
+
+private _pushResolveDebugEvent = {
+	params ["_label", "_data"];
+
+	if (!_debugResolveTraceEnabled) exitWith {};
+	_debugResolveEvents pushBack [_label, _data];
+};
+
+private _buildDirectBodyCandidates = {
+	params ["_originAsl", "_moveDir2D"];
+
+	private _torsoPointAsl = +_originAsl;
+	_torsoPointAsl set [2, (_torsoPointAsl select 2) + 1.15];
+
+	private _leadTorsoPointAsl = +_torsoPointAsl;
+	_leadTorsoPointAsl set [0, (_leadTorsoPointAsl select 0) + ((_moveDir2D select 0) * 0.20)];
+	_leadTorsoPointAsl set [1, (_leadTorsoPointAsl select 1) + ((_moveDir2D select 1) * 0.20)];
+
+	private _pelvisPointAsl = +_originAsl;
+	_pelvisPointAsl set [2, (_pelvisPointAsl select 2) + 0.85];
+
+	[_torsoPointAsl, _leadTorsoPointAsl, _pelvisPointAsl]
+};
+
+private _makeGroundPoint = {
+	params ["_originAsl", ["_leadDir2D", [0, 0, 0]], ["_leadDistance", 0], ["_heightOffset", 0]];
+
+	private _pointAsl = +_originAsl;
+	_pointAsl set [0, (_pointAsl select 0) + ((_leadDir2D select 0) * _leadDistance)];
+	_pointAsl set [1, (_pointAsl select 1) + ((_leadDir2D select 1) * _leadDistance)];
+	_pointAsl set [2, (getTerrainHeightASL [_pointAsl select 0, _pointAsl select 1]) + _heightOffset];
+
+	_pointAsl
+};
+
+private _traceSurface = {
+	params ["_startAsl", "_endAsl"];
+
+	[_uav, _target, _startAsl, _endAsl] call A3UE_fnc_fpv_traceAttackRay
+};
+
+private _buildSolution = {
+	params ["_valid", "_impactMode", "_impactPointAsl", "_surfaceType", "_surfaceObject", "_reason", ["_solutionFallbackRadius", _fallbackRadius]];
+
+	createHashMapFromArray [
+		["valid", _valid],
+		["impactMode", _impactMode],
+		["impactPointASL", _impactPointAsl],
+		["surfaceType", _surfaceType],
+		["surfaceObject", _surfaceObject],
+		["targetNetId", netId _target],
+		["reason", _reason],
+		["fallbackAllowed", _fallbackAllowed],
+		["fallbackRadius", _solutionFallbackRadius],
+		["updatedAt", time]
+	]
+};
+
+private _resolveDirectBodySolution = {
+	params ["_candidatePointsAsl"];
+	private _resolvedSolution = [false, createHashMap];
+
+	{
+		private _candidatePointAsl = +_x;
+		private _candidateLabel = format ["candidate_%1", _forEachIndex];
+		private _candidateHits = [_uavPosAsl, _candidatePointAsl] call _traceSurface;
+
+		if (_candidateHits isNotEqualTo []) then {
+			private _firstHit = _candidateHits select 0;
+			private _hitPointAsl = _firstHit param [0, []];
+			private _hitObject = _firstHit param [2, objNull];
+			private _hitObjectType = if (isNull _hitObject) then {""} else {typeOf _hitObject};
+			private _hitObjectNetId = if (isNull _hitObject) then {""} else {netId _hitObject};
+			private _hitTarget = !isNull _hitObject && {
+				_hitObject == _target || {
+					_hitObject == objectParent _target
+				}
+			};
+
+			if (_hitTarget) exitWith {
+				[_candidateLabel, [_candidatePointAsl, "TARGET_HIT", _hitPointAsl, _hitObjectType, _hitObjectNetId]] call _pushResolveDebugEvent;
+				_resolvedSolution = [true, [true, "DIRECT_BODY", _hitPointAsl, "body", _hitObject, "DIRECT_BODY_HIT"] call _buildSolution];
+			};
+
+			[_candidateLabel, [_candidatePointAsl, ["NON_TARGET_HIT", "OBSTRUCTION_HIT"] select (_fallbackAllowed && {!isNull _hitObject}), _hitPointAsl, _hitObjectType, _hitObjectNetId]] call _pushResolveDebugEvent;
+
+			if (_fallbackAllowed && {!isNull _hitObject}) exitWith {
+				_resolvedSolution = [true, [true, "OBSTRUCTION_SURFACE", _hitPointAsl, "obstruction", _hitObject, "OBSTRUCTION_PRIMARY"] call _buildSolution];
+			};
+		} else {
+			[_candidateLabel, [_candidatePointAsl, ["NO_HITS_TARGET_BLOCKED", "CLEAR_PATH"] select (!_targetObstructed), [], "", ""]] call _pushResolveDebugEvent;
+
+			if (!_targetObstructed) exitWith {
+				_resolvedSolution = [true, [true, "DIRECT_BODY", _candidatePointAsl, "body", _target, "DIRECT_BODY_CLEAR_PATH"] call _buildSolution];
+			};
+		};
+		if (_resolvedSolution param [0, false]) exitWith {};
+	} forEach _candidatePointsAsl;
+
+	_resolvedSolution
+};
+
+private _desiredMode = switch (true) do {
+	case (_isAirTarget): {"AIR_PROXIMITY"};
+	case (_isStaticTarget): {"DIRECT_STATIC"};
+	case (_isVehicleTarget): {"DIRECT_HULL"};
+	case (_isManTarget): {"DIRECT_BODY"};
+	default {_configuredImpactMode};
+};
+
+private _finalizeResolveDebug = {
+	params [["_solution", createHashMap]];
+
+	if (_debugResolveTraceEnabled) then {
+		private _summary = [
+			_uav getVariable ["A3UE_FPV_netId", netId _uav],
+			netId _target,
+			_desiredMode,
+			_obstructionInfo getOrDefault ["blocked", false],
+			_obstructionInfo getOrDefault ["terrainBlocked", false],
+			_obstructionInfo getOrDefault ["obstructionCount", 0],
+			+_debugResolveEvents,
+			_solution getOrDefault ["impactMode", "NONE"],
+			_solution getOrDefault ["reason", "NONE"],
+			_solution getOrDefault ["surfaceType", "none"],
+			_solution getOrDefault ["impactPointASL", []]
+		];
+		private _signature = str _summary;
+
+		if !(_signature isEqualTo (_uav getVariable ["A3UE_FPV_lastDirectBodyResolveDebug", ""])) then {
+			_uav setVariable ["A3UE_FPV_lastDirectBodyResolveDebug", _signature];
+			diag_log format ["A3UE_FPV_RCA directBodyResolve=%1", _signature];
+		};
+	};
+
+	_solution
+};
+
+private _primaryPointAsl = +_targetPosAsl;
+switch (_desiredMode) do {
+	case "DIRECT_BODY": {
+		_primaryPointAsl set [2, (_primaryPointAsl select 2) + 1.15];
+	};
+
+	case "DIRECT_HULL": {
+		_primaryPointAsl set [2, (_primaryPointAsl select 2) + 1.2];
+	};
+
+	case "DIRECT_STATIC": {
+		_primaryPointAsl set [2, (_primaryPointAsl select 2) + 0.9];
+	};
+
+	case "AIR_PROXIMITY": {
+		_primaryPointAsl = +_targetPosAsl;
+	};
+
+	default {
+		_primaryPointAsl set [2, (_primaryPointAsl select 2) + 1.0];
+	};
+};
+
+private _resolvedDirectBody = false;
+private _resolvedDirectBodySolution = createHashMap;
+
+if (_desiredMode == "DIRECT_BODY") then {
+	private _directBodyCandidatesAsl = [_targetPosAsl, _targetMoveDir2D] call _buildDirectBodyCandidates;
+	["directBodyCandidates", +_directBodyCandidatesAsl] call _pushResolveDebugEvent;
+	private _directBodyResolution = [_directBodyCandidatesAsl] call _resolveDirectBodySolution;
+
+	_resolvedDirectBody = _directBodyResolution param [0, false];
+	if (_resolvedDirectBody) then {
+		_resolvedDirectBodySolution = _directBodyResolution param [1, createHashMap];
+	};
+	};
+
+if (_resolvedDirectBody) exitWith {
+	[_resolvedDirectBodySolution] call _finalizeResolveDebug
+};
+
+private _surfaceSolution = createHashMap;
+private _surfaceHits = [_uavPosAsl, _primaryPointAsl] call _traceSurface;
+if (_surfaceHits isNotEqualTo []) then {
+	private _firstHit = _surfaceHits select 0;
+	private _hitPointAsl = _firstHit param [0, []];
+	private _hitObject = _firstHit param [2, objNull];
+	private _hitTarget = !isNull _hitObject && {
+		_hitObject == _target || {
+			_hitObject == objectParent _target
+		}
+	};
+
+	if (_hitTarget) then {
+		private _surfaceType = switch (_desiredMode) do {
+			case "DIRECT_BODY": {"body"};
+			case "DIRECT_HULL": {"vehicle"};
+			case "DIRECT_STATIC": {"static"};
+			case "AIR_PROXIMITY": {"air"};
+			default {"target"};
+		};
+
+		_surfaceSolution = [true, _desiredMode, _hitPointAsl, _surfaceType, _hitObject, _desiredMode] call _buildSolution;
+	} else {
+		if (_fallbackAllowed && {!isNull _hitObject}) then {
+			_surfaceSolution = [true, "OBSTRUCTION_SURFACE", _hitPointAsl, "obstruction", _hitObject, "OBSTRUCTION_PRIMARY"] call _buildSolution;
+		};
+	};
+};
+if (count _surfaceSolution > 0) exitWith {
+	[_surfaceSolution] call _finalizeResolveDebug
+};
+
+if (_fallbackAllowed && {_targetObstructed}) then {
+	private _obstructionProbeAsl = +_targetPosAsl;
+	_obstructionProbeAsl set [2, (_obstructionProbeAsl select 2) + (if (_isManTarget) then {1.15} else {1.0})];
+	private _obstructionHits = ([_uavPosAsl, _obstructionProbeAsl] call _traceSurface) select {
+		private _hitObject = _x param [2, objNull];
+		!isNull _hitObject && {
+			_hitObject != _target &&
+			_hitObject != objectParent _target
+		}
+	};
+
+	if (_obstructionHits isNotEqualTo []) then {
+		private _obstructionHit = _obstructionHits select 0;
+		private _hitPointAsl = _obstructionHit param [0, []];
+		private _hitObject = _obstructionHit param [2, objNull];
+		_surfaceSolution = [true, "OBSTRUCTION_SURFACE", _hitPointAsl, "obstruction", _hitObject, "OBSTRUCTION_REUSED"] call _buildSolution;
+	};
+};
+if (count _surfaceSolution > 0) exitWith {
+	[_surfaceSolution] call _finalizeResolveDebug
+};
+
+if (_desiredMode == "AIR_PROXIMITY") exitWith {
+	[[true, "AIR_PROXIMITY", _primaryPointAsl, "air", _target, "AIR_TARGET_PROXIMITY"] call _buildSolution] call _finalizeResolveDebug
+};
+
+if (_desiredMode == "DIRECT_BODY") exitWith {
+	private _groundPoint = [_targetPosAsl, _targetMoveDir2D, _infantryGroundLead, _groundOffset] call _makeGroundPoint;
+	[[true, "GROUND_NEAR_TARGET", _groundPoint, "ground", objNull, "GROUND_NEAR_TARGET"] call _buildSolution] call _finalizeResolveDebug
+};
+
+if (_desiredMode in ["DIRECT_HULL", "DIRECT_STATIC"]) exitWith {
+	private _offsetDir = _incomingDir2D vectorMultiply -1;
+	private _groundPoint = [_targetPosAsl, _offsetDir, _fallbackRadius, _groundOffset] call _makeGroundPoint;
+	[[true, "GROUND_NEAR_TARGET", _groundPoint, "ground", objNull, "GROUND_NEAR_OBJECT"] call _buildSolution] call _finalizeResolveDebug
+};
+
+[[true, _desiredMode, _primaryPointAsl, "target", _target, "DIRECT_POINT"] call _buildSolution] call _finalizeResolveDebug

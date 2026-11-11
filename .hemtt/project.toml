@@ -1,0 +1,31 @@
+name = "[A3UE] FPV Drones"
+# HEMTT names PBOs {prefix}_{addon}: fpv_ai + drones retains fpv_ai_drones.pbo.
+# The virtual addon prefix is separately preserved in addons/drones/$PBOPREFIX$.
+prefix = "fpv_ai"
+
+[version]
+major = 1
+minor = 0
+patch = 6
+git_hash = 0
+
+[files]
+include = ["mod.cpp", "meta.cpp", "logo.paa", "logo_small.paa", "THIRD-PARTY-NOTICES.txt"]
+exclude = ["**/*.md", "**/AGENTS.md", "**/addon.toml"]
+
+# Antistasi's existing script_mod.hpp tests __A3_DEBUG__.
+[preprocessor]
+runtime_macros = true
+
+[signing]
+authority = "fpv_ai_drones"
+version = 3
+
+[hemtt.release]
+sign = true
+archive = true
+folder = "A3UE-FPV-Drones"
+
+# The Workshop target is read from root meta.cpp, not a project.toml ID.
+# Leave Workshop description/title/preview metadata under the existing item's control.
+[hemtt.publish]

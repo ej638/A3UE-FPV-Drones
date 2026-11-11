@@ -1,0 +1,639 @@
+{
+  "evidence": ".hemttout/verification/motion-preparation-unknown-cargo-20261013-001/final-session/01-final-Arma3_x64_2026-10-13_22-48-52.rpt",
+  "evidence_sha256": "b30e2049fd37f6f8970349ed1568586728f3dff1c147310ceb07692d56190a3e",
+  "observed_rows": 83,
+  "entries": [
+    {
+      "registry": "cba_xeh_initpost:Helicopter",
+      "index": 0,
+      "observed_length": 31,
+      "observed_prefix": "{call ace_fcs_fnc_vehicleInit;}",
+      "policy_target": "ace_fcs",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "FCS_DISABLED"
+      ],
+      "pins": [
+        "6",
+        "7",
+        "8"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:Helicopter",
+      "index": 1,
+      "observed_length": 1042,
+      "observed_prefix": "{#line 18 \"\\z\\ace\\addons\\aircraft\\functions\\fnc_initEjectAction.sqf\"\nparams [\"_vehicle\"];\n\nif (unitIsUAV _vehicle) exitWith {};\n\nprivate _config = configOf _vehicle;\n\nprivate _addAction = false;\n\nif (",
+      "policy_target": "ace_eject",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "IS_UAV"
+      ],
+      "pins": [
+        "54",
+        "53"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:Air",
+      "index": 0,
+      "observed_length": 1362,
+      "observed_prefix": "{params [\"_unit\"];\n    if (hasPilotCamera _unit) then {\n        if (!alive _unit) exitWith {};\n\n        if ((getNumber ((configOf _unit) >> \"pilotCamera\" >> \"controllable\")) == 0) exitWith {};\n\n      ",
+      "policy_target": "ace_laser_tracker",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "LST_OFF"
+      ],
+      "pins": [
+        "57",
+        "34",
+        "35",
+        "36"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:Air",
+      "index": 1,
+      "observed_length": 386,
+      "observed_prefix": "{params [\"_vehicle\"];\n    private _typeOf = typeOf _vehicle;\n\n    if (_typeOf in ace_pylons_aircraftWithPylons) exitWith {};\n    if (!isClass ((configOf _vehicle) >> 'Components' >> 'TransportPylonsCo",
+      "policy_target": "ace_pylons",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "NO_PYLONS"
+      ],
+      "pins": [
+        "60"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:Air",
+      "index": 2,
+      "observed_length": 288,
+      "observed_prefix": "{if (!ace_fastroping_autoAddFRIES) exitWith {};\n        params [\"_vehicle\"];\n        if (isNumber (configOf _vehicle >> \"ace_fastroping_enabled\") && {isNil {_vehicle getVariable [\"ace_fastroping_FRIES",
+      "policy_target": "ace_fries",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "NO_FRIES"
+      ],
+      "pins": [
+        "56",
+        "55"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:Air",
+      "index": 0,
+      "observed_length": 45,
+      "observed_prefix": "{_this call klpq_musicRadio_fnc_vehicleInit;}",
+      "policy_target": "klpq_radio",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "RADIO_OFF"
+      ],
+      "pins": [
+        "9",
+        "34",
+        "35",
+        "36"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:Air",
+      "index": 1,
+      "observed_length": 43,
+      "observed_prefix": "{call ace_markinglaser_fnc_onAircraftInit;}",
+      "policy_target": "ace_markinglaser",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "LASER_OFF"
+      ],
+      "pins": [
+        "10",
+        "11",
+        "34",
+        "35",
+        "36"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:Air",
+      "index": 2,
+      "observed_length": 3351,
+      "observed_prefix": "{#line 18 \"\\z\\ace\\addons\\cargo\\functions\\fnc_initVehicle.sqf\"\nparams [\"_vehicle\"];\n;\n\nprivate _type = typeOf _vehicle;\nprivate _config = configOf _vehicle;\n\n\nprivate _hasCargoPublic = _vehicle getVari",
+      "policy_target": "ace_cargo_vehicle",
+      "classification": "CARGO_ADDITION",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "ACE_CARGO_EMPTY"
+      ],
+      "pins": [
+        "116",
+        "114",
+        "115",
+        "117",
+        "118",
+        "119",
+        "120",
+        "121",
+        "122",
+        "123",
+        "124",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "8"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:AllVehicles",
+      "index": 0,
+      "observed_length": 3002,
+      "observed_prefix": "{#line 18 \"\\z\\ace\\addons\\rearm\\functions\\fnc_initSupplyVehicle.sqf\"\nif (!ace_rearm_enabled) exitWith {};\n\nparams [\"_vehicle\"];\n\nprivate _typeOf = typeOf _vehicle;\nprivate _configOf = configOf _vehicle",
+      "policy_target": "ace_rearm",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [
+        "NO_SUPPLY"
+      ],
+      "pins": [
+        "62",
+        "61"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:AllVehicles",
+      "index": 0,
+      "observed_length": 102,
+      "observed_prefix": "{params [\"_vehicle\"];\n        _vehicle setVariable [\"ace_vehicles_engineState\", isEngineOn _vehicle];}",
+      "policy_target": "ace_vehicle_state",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM"
+      ],
+      "conditions": [],
+      "pins": [
+        "63"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:All",
+      "index": 0,
+      "observed_length": 5095,
+      "observed_prefix": "{#line 18 \"\\z\\ace\\addons\\interact_menu\\functions\\fnc_compileMenu.sqf\"\nparams [\"_target\"];\n\nprivate _objectType = if (_target isEqualType objNull) then {\n    typeOf _target\n} else {\n    _target call ac",
+      "policy_target": "ace_menu_init",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM",
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "42",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:All",
+      "index": 0,
+      "observed_length": 513,
+      "observed_prefix": "{params [\"_object\"];\n    private _type = typeOf _object;\n\n    if (ace_interact_menu_inheritedClassesAll pushBackUnique _type == -1) exitWith { ; ; };\n\n    {\n        _x params [\"_objectType\", \"_typeNum",
+      "policy_target": "ace_menu_All",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM",
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "42",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:All",
+      "index": 1,
+      "observed_length": 102,
+      "observed_prefix": "{params [\"_object\"];\n\n        [typeOf _object, _object] call cba_disposable_fnc_replaceMagazineCargo;}",
+      "policy_target": "cba_disposable_cargo",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM",
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "EMPTY_CARGO"
+      ],
+      "pins": [
+        "47",
+        "48"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_local:All",
+      "index": 0,
+      "observed_length": 37,
+      "observed_prefix": "{call cba_statuseffects_fnc_localEH;}",
+      "policy_target": "cba_statuseffects_effects",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM",
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "CBA_EFFECTS_UNDEFINED"
+      ],
+      "pins": [
+        "12",
+        "13",
+        "14"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_local:All",
+      "index": 1,
+      "observed_length": 43,
+      "observed_prefix": "{call ace_common_fnc_statusEffect_localEH;}",
+      "policy_target": "ace_common_effects",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_01_F",
+        "O_UAFPV_PG7VL_AT",
+        "frtz_O_KVN_AT_20KM",
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "ACE_EFFECTS_UNDEFINED"
+      ],
+      "pins": [
+        "15",
+        "16",
+        "17"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:CAManBase",
+      "index": 0,
+      "observed_length": 112,
+      "observed_prefix": "{params [\"_unit\"];\n    if (local _unit) then {\n        _unit setVariable [\"cba_network_wasLocal\", true];\n    };}",
+      "policy_target": "cba_network_Init",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "45"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_init:CAManBase",
+      "index": 2,
+      "observed_length": 63,
+      "observed_prefix": "{[ace_ai_fnc_assignNVG, _this, 1] call CBA_fnc_waitAndExecute;}",
+      "policy_target": "ace_ai_nvg",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "52",
+        "49",
+        "50",
+        "51"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 0,
+      "observed_length": 827,
+      "observed_prefix": "{\nparams [[\"_unit\", objNull, [objNull]]];\n\nif (isNull _unit) exitWith {\n    format ['[%1] (%2) %3: %4', toUpper 'cba', 'common', 'WARNING', format[\"Unit [%1] is null\", _unit]] call CBA_fnc_log;\n    f",
+      "policy_target": "cba_facewear",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "44",
+        "43"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 1,
+      "observed_length": 84,
+      "observed_prefix": "{params [\"_unit\"];\n    _unit call cba_disposable_fnc_changeDisposableLauncherClass;}",
+      "policy_target": "cba_disposable_unit",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "UNARMED_CREW"
+      ],
+      "pins": [
+        "47",
+        "46"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 2,
+      "observed_length": 466,
+      "observed_prefix": "{params [\"_object\"];\n    private _type = typeOf _object;\n\n    if (ace_interact_menu_inheritedClassesMan pushBackUnique _type == -1) exitWith { ; ; };\n    {\n        _x params [\"_typeNum\", \"_parentPath\"",
+      "policy_target": "ace_menu_CAManBase",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "42",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 3,
+      "observed_length": 91,
+      "observed_prefix": "{_unit = _this select 0; if (local _unit) then {_unit call WBK_SpecialHit_FixingScript;};;}",
+      "policy_target": "wbk_reactions",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "CONSCIOUS_CREW"
+      ],
+      "pins": [
+        "18"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 4,
+      "observed_length": 47,
+      "observed_prefix": "{call diwako_dui_nametags_fnc_handleInitPost;;}",
+      "policy_target": "dui_names",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "19"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 5,
+      "observed_length": 1015,
+      "observed_prefix": "{_unit = _this select 0; if (local _unit) then {_unit spawn IMS_AI_MeleeAIBayonet; _unit setVariable [\"IMS_SoundObject\",nil,true]; _unit setVariable [\"actualSwordBlock\",0, true]; _unit setVariable [\"c",
+      "policy_target": "ims_bayonet",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "UNARMED_CREW"
+      ],
+      "pins": [
+        "20"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 6,
+      "observed_length": 97,
+      "observed_prefix": "{if (local (_this select 0)) then {[ace_common_fnc_setName, _this] call CBA_fnc_execNextFrame};;}",
+      "policy_target": "ace_name",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "21",
+        "22",
+        "5"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 7,
+      "observed_length": 45,
+      "observed_prefix": "{call ace_common_fnc_muteUnitHandleInitPost;}",
+      "policy_target": "ace_mute",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "MUTE_UNDEFINED"
+      ],
+      "pins": [
+        "23"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 8,
+      "observed_length": 44,
+      "observed_prefix": "{call ace_respawn_fnc_handleInitPostServer;}",
+      "policy_target": "ace_respawn",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "NO_RALLYPOINT"
+      ],
+      "pins": [
+        "24"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_initpost:CAManBase",
+      "index": 9,
+      "observed_length": 43,
+      "observed_prefix": "{call ace_captives_fnc_handleUnitInitPost;}",
+      "policy_target": "ace_captives_init",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "NO_CAPTIVE_STATE"
+      ],
+      "pins": [
+        "25"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_local:CAManBase",
+      "index": 0,
+      "observed_length": 482,
+      "observed_prefix": "{params [\"_unit\", \"_local\"];\n    if !(_local) then {\n\n        if (cba_network_loadoutValidation > 0 && {_unit getVariable [\"cba_network_wasLocal\", false]}) then {\n            if (cba_network_loadoutVa",
+      "policy_target": "cba_network_Local",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [],
+      "pins": [
+        "45"
+      ],
+      "engine_full_body": "PENDING"
+    },
+    {
+      "registry": "cba_xeh_local:CAManBase",
+      "index": 2,
+      "observed_length": 36,
+      "observed_prefix": "{call ace_captives_fnc_handleLocal;}",
+      "policy_target": "ace_captives_local",
+      "classification": "ALREADY_REVIEWED",
+      "subjects": [
+        "B_UAV_AI",
+        "O_UAV_AI"
+      ],
+      "conditions": [
+        "NO_CAPTIVE_STATE"
+      ],
+      "pins": [
+        "26"
+      ],
+      "engine_full_body": "PENDING"
+    }
+  ],
+  "limitations": [
+    "Only discovery prefixes except complete short wrappers; callback body dump truncates mid-body.",
+    "Every target uses full reviewed source pins and engine full-body comparisons, never this manifest.",
+    "Turret-only crew not captured; admission recursively inventories gunnerType classes.",
+    "Excluded registry entries, dedicated/HC roles, headless transfer/loadout, unknown/changed callbacks and actual conditions are not qualified."
+  ]
+}
