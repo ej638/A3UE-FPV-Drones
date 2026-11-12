@@ -47,6 +47,12 @@ class CfgAmmo {
     };
 };
 
+class Extended_PreInit_EventHandlers {
+    class A3UE_FPV_settings {
+        init = "call compileScript ['\fpv_ai_drones\functions\fpv\fn_fpv_registerSettings.sqf']";
+    };
+};
+
 class CfgFunctions {
     class A3UE {
         class FPV {
@@ -99,6 +105,9 @@ class CfgFunctions {
             class fpv_managerSpawnDrone {};
             class fpv_managerDeployStock {};
             class fpv_siteStock {};
+            class fpv_userSetting {};
+            class fpv_registerSettings {};
+            class fpv_supportAllowed {};
             class fpv_standoffThreats {};
             class fpv_launchStandoff {};
             class fpv_spawnManagedDrone {};

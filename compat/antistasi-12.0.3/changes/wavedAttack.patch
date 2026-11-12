@@ -36,7 +36,7 @@
 +    for "_i" from 1 to _countNewSupport do
      {
          private _possibles = ["AH", 1];
-+        if (!("FPV" in _airSupports) && {([_side, _targside] call A3UE_fnc_fpv_getHostileSides) isNotEqualTo []}) then {
++        if (!("FPV" in _airSupports) && {([_side, _targside] call A3UE_fnc_fpv_getHostileSides) isNotEqualTo []} && {(call A3UE_fnc_fpv_supportAllowed) # 0}) then {
 +            _possibles append ["FPV", 0.8];
 +        };
          if !("UAV" in _airSupports) then { _possibles append ["UAV", 1] };

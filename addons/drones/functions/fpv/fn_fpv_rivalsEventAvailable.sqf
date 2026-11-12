@@ -5,6 +5,11 @@
 //
 // Used by the selector and handler wrappers on the rival event hot-path.
 
+// --- User setting (1.0.7) -------------------------------------------------------
+// "Rivals FPV drone" off: report unavailable, so both wrappers take AU's stock path
+// (stock rival UAVs, or a clean reroll without UAVGRENADE). Read live, no restart.
+if !(["rivalsEnabled"] call A3UE_fnc_fpv_userSetting) exitWith {false};
+
 // --- Hook state ---------------------------------------------------------------
 if (!(missionNamespace getVariable ["A3UE_FPV_rivalsHooksInstalled", false])) exitWith {false};
 // Event-time guard closes the interval before the low-cadence diagnostic check.

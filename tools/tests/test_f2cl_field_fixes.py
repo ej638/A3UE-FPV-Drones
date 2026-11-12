@@ -268,8 +268,8 @@ _r = [[0,0,0],[0,0,35],[],createHashMap] call A3UE_fnc_fpv_launchStandoff;
 
     # ---- FS-04 session stock ------------------------------------------------------
     def test_site_stock_rolls_once_depletes_returns_and_refills(self):
-        self.vm(['profileValue', 'siteStock'], r'''
-missionNamespace setVariable ["A3UE_FPV_debug", true];
+        self.vm(['profileValue', 'userSetting', 'siteStock'], r'''
+missionNamespace setVariable ["A3UE_FPV_siteFrequency", "ALWAYS"];
 private _profile = createHashMapFromArray [["spawnChance",0.5],["stock",[3,3]]];
 private _open = ["OPEN","Outpost_1",east,_profile] call A3UE_fnc_fpv_siteStock;
 [_open isEqualTo [3,3,false,0],format ["fresh roll %1",_open]] call _assert;
@@ -294,12 +294,12 @@ private _inv = ["OPEN","Outpost_1",independent,createHashMapFromArray [["stock",
 ["CLEAR","Outpost_1"] call A3UE_fnc_fpv_siteStock;
 [!("Outpost_1" in A3UE_FPV_siteStock),"cleared"] call _assert;
 [(["SPEND","nowhere",east,1] call A3UE_fnc_fpv_siteStock) == -1,"no record"] call _assert;
-missionNamespace setVariable ["A3UE_FPV_debug", false];
+missionNamespace setVariable ["A3UE_FPV_siteFrequency", "NORMAL"];
 private _skip = ["OPEN","Resource_1",east,createHashMapFromArray [["spawnChance",-1],["stock",[1,1]]]] call A3UE_fnc_fpv_siteStock;
 [(_skip # 2) && {(_skip # 1) == 0},"failed spawn chance gives no stock"] call _assert;
 _skip = ["OPEN","Resource_1",east,createHashMapFromArray [["spawnChance",1],["stock",[1,1]]]] call A3UE_fnc_fpv_siteStock;
 [_skip # 2,"the failed roll is kept for the session"] call _assert;
-missionNamespace setVariable ["A3UE_FPV_debug", true];
+missionNamespace setVariable ["A3UE_FPV_siteFrequency", "ALWAYS"];
 missionNamespace setVariable ["A3UE_FPV_siteStockRefillSeconds", 300];
 FPV_time = 0; ["OPEN","Factory_1",east,_profile] call A3UE_fnc_fpv_siteStock; ["SPEND","Factory_1",east,3] call A3UE_fnc_fpv_siteStock;
 FPV_time = 300;
@@ -315,7 +315,7 @@ A3UE_fnc_fpv_selectFamilyForSite={"kvn"};
 A3UE_FPV_catalog=createHashMapFromArray [["kvn",createHashMap]];
 A3UE_FPV_doctrine=createHashMapFromArray [["Outpost",createHashMapFromArray [["spawnChance",1],["stock",[3,3]]]]];
 A3UE_FPV_siteReady=true; A3UE_FPV_registry=createHashMap; A3UE_FPV_siteLifecycle=createHashMap;
-missionNamespace setVariable ["A3UE_FPV_debug", true];
+missionNamespace setVariable ["A3UE_FPV_debug", true]; missionNamespace setVariable ["A3UE_FPV_siteFrequency", "ALWAYS"];
 sidesX="VMUAV" createVehicle [0,0,0]; Occupants=east; Invaders=independent;
 {sidesX setVariable [_x,east]; A3UE_FPV_siteLifecycle set [_x,createHashMapFromArray [["generation",1],["cleanupDrones",[]]]];} forEach ["Outpost_1","Outpost_2","Outpost_3"];
 A3UE_fnc_fpv_standoffThreats={[]};
@@ -331,7 +331,7 @@ A3UE_fnc_fpv_cleanupDrone={params ["_u"]; _u setVariable ["A3UE_FPV_managed",fal
 '''
 
     def test_site_lifecycle_keeps_losses_and_refills(self):
-        out = self.vm(['profileValue', 'siteStock', 'managerDeployStock', 'managerEvaluateSite'], r'''
+        out = self.vm(['profileValue', 'userSetting', 'siteStock', 'managerDeployStock', 'managerEvaluateSite'], r'''
 [["Outpost_1","Outpost",true] call A3UE_fnc_fpv_managerEvaluateSite,"activation 1"] call _assert;
 private _entry = A3UE_FPV_registry get "Outpost_1";
 [count (_entry get "drones") == 3 && {(_entry get "status") == "active"},"three spawned"] call _assert;
@@ -369,7 +369,7 @@ _entry = A3UE_FPV_registry get "Outpost_1";
         self.assertIn('requested=0', lines[2])
 
     def test_standoff_deferral_is_bounded_and_unspent_stock_stays(self):
-        out = self.vm(['profileValue', 'siteStock', 'managerDeployStock', 'managerEvaluateSite'], r'''
+        out = self.vm(['profileValue', 'userSetting', 'siteStock', 'managerDeployStock', 'managerEvaluateSite'], r'''
 FPV_spawnPlan = ["ok","standoff","standoff"]; FPV_time = 5000;
 ["Outpost_2","Outpost",true] call A3UE_fnc_fpv_managerEvaluateSite;
 private _e = A3UE_FPV_registry get "Outpost_2";
@@ -550,7 +550,8 @@ class F2CLSourceContracts(unittest.TestCase):
     def test_defaults_bounds_and_no_new_workers(self):
         self.assertIn('getVariable ["A3UE_FPV_launchStandoff", 800]', self.src('launchStandoff'))
         self.assertIn('_standoff = _standoff min 3000;', self.src('launchStandoff'))
-        self.assertIn('getVariable ["A3UE_FPV_siteStockRefillSeconds", 900]', self.src('siteStock'))
+        self.assertIn('getVariable ["A3UE_FPV_siteStockRefillSeconds", 900]', self.src('userSetting'))
+        self.assertIn('["siteRefillSeconds"] call A3UE_fnc_fpv_userSetting', self.src('siteStock'))
         self.assertIn('forEach [0, 30, -30, 60, -60, 90, -90];', self.src('launchStandoff'))
         self.assertIn('_retries < 3', self.src('managerDeployStock'))
         self.assertIn('time + 20', self.src('managerDeployStock'))

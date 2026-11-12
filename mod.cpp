@@ -11,4 +11,4 @@ tooltipOwned = "[A3UE] AI FPV Drones Owned";
 description = "[A3UE] Antistasi FPV threat drones that deploy from active sites and autonomously attack hostile targets.";
 overview = "This mod integrates Antistasi-driven FPV drone threats through A3UE, spawning autonomous strike drones from supported site types with runtime FPV family compatibility.";
 author = "EJ";
-version = "1.0.6";
+version = "1.0.7";

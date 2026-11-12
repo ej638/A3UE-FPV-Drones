@@ -29,6 +29,8 @@ The AU code they were reviewed against is pinned by hash in [`compat/`](../compa
 
 Sites held by the **Occupants or Invaders** (the sides at war with the players) can deploy drones. AU raises `Airport`, `Outpost` and `Resource` events. The mod tells them apart by marker, which gives six site types:
 
+With the default settings:
+
 | Site type | Chance of drones | Stock | Role mix (AT / AP / thermal) |
 |---|---|---|---|
 | Airport | 60% | 2–4 | 60 / 20 / 20 |
@@ -40,13 +42,16 @@ Sites held by the **Occupants or Invaders** (the sides at war with the players) 
 
 Bigger sites also favour longer-range KVN and thermal anti-tank classes. See [Drone packs](drone-packs.md#detection-the-compatibility-catalog).
 
+The **Site drone frequency** and **Drones per site** [settings](../README.md#settings) scale the chance (Off, ×0.5, ×1, ×1.5 or always) and shift the stock by one drone either way, never below one.
+
 ### Stock
 
 - A site rolls its chance and stock **once per side holding it, per session.**
   - Re-activating the same site doesn't re-roll.
   - Drones that were destroyed or spent don't come back at once.
 - **Intact drones return** to the stock when the site despawns.
-- **Refill:** one drone every 15 minutes (`A3UE_FPV_siteStockRefillSeconds`), up to the rolled maximum.
+- **Refill:** one drone every 15 minutes by default, up to the rolled maximum, counted from when the site's drones launched. The **Lost drone replacement** setting changes the interval (15, 30 or 60 minutes) or turns refills off.
+  - An active site never gets extra drones mid-fight. Stock is only read when the site spawns, so a refilled drone is used on the next activation.
 - **Capture clears the stock.** A site that changes hands starts fresh for its new owner. Drones already in flight from a captured site are fenced so they can't strike for the old owner.
 - **Nothing is saved.** The stock lives only for the mission run; nothing is written to the AU save. After a load, every site rolls again.
 
@@ -80,7 +85,8 @@ Tested on a dedicated server with one HC and one player (1.0.5): every site's dr
 The mod adds an `FPV` support type to AU's Occupant and Invader support tables, next to AU's own UAV, CAS and artillery supports.
 
 - **When it's offered:**
-  - from war tier 3, when at least one drone pack is loaded;
+  - when the **Enemy FPV strikes** setting is on (the default);
+  - from war level 3 by default (the **Earliest war level for FPV strikes** setting), when at least one drone pack is loaded;
   - when the side holds a site that can launch it.
 - **Where it launches from:** a nearby site or base the side holds.
   - AU's own rules decide which bases are eligible (cooldown, garrison, spawn positions).
@@ -100,7 +106,7 @@ AU's own attack scripts get an FPV option through the replaced functions:
 | AU attack | FPV behaviour |
 |---|---|
 | Counterattack (`singleAttack`) | Tries an FPV support first, within the same budget. The conventional force is reduced only if the FPV is actually committed |
-| Major attack waves (`wavedAttack`) | FPV counts in the same air-support lane as UAV and CAS and launches from the wave's origin. From war tier 7 it can send two drones |
+| Major attack waves (`wavedAttack`) | FPV counts in the same air-support lane as UAV and CAS and launches from the wave's origin. From war tier 7 it can send two drones. FPV is only offered while FPV strikes are allowed (setting on, war level reached), so a wave never trades a refused FPV for an extra attack helicopter |
 | HQ attack (`attackHQ`) | Tries an FPV support first, then falls back to AU's normal UAV support |
 | Invader punishment (`invaderPunish`) | Adds an FPV support without removing anything from AU's normal punishment package |
 
@@ -111,6 +117,7 @@ Rivals (AU's third hostile faction) don't use the support system. They pick even
 - If the Rivals faction has its own drones, AU's normal drone event runs unchanged.
 - If it has none and a drone pack is loaded, the drone event stays in the pool and launches a managed FPV, which uses the same flight model and turn-taking as site drones.
 - If neither is available, the event is re-rolled cleanly instead of failing.
+- With the **Rivals FPV drone** setting off, the mod steps aside and Rivals behave as in normal AU.
 
 ## Accounting
 

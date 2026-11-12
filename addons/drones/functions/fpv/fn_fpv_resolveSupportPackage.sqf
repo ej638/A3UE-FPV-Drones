@@ -107,14 +107,13 @@ private _minDroneCount = (_supportData getOrDefault ["droneCountMin", 1]) max 1;
 private _maxDroneCount = (_supportData getOrDefault ["droneCountMax", _minDroneCount]) max _minDroneCount;
 private _pairTier = _supportData getOrDefault ["pairTier", 99];
 private _warTier = missionNamespace getVariable ["tierWar", 1];
-private _minWarTier = _supportData getOrDefault ["minWarTier", 3];
-
-if !(_minWarTier isEqualType 0) then {
-    _minWarTier = 3;
-};
-
-if (_warTier < _minWarTier) exitWith {
-    ["WAR_TIER_TOO_LOW", createHashMapFromArray [["warTier", _warTier], ["minWarTier", _minWarTier]]] call _makeFailure
+// User settings (1.0.7): "Enemy FPV strikes" and "Earliest war level" (default 3, the value every
+// doctrine context used) gate every FPV support request here, availability queries included.
+// _minWarTier is also reported in each candidate below.
+private _minWarTier = ["supportMinWarTier"] call A3UE_fnc_fpv_userSetting;
+(call A3UE_fnc_fpv_supportAllowed) params ["_supportAllowed", "_supportBlock"];
+if (!_supportAllowed) exitWith {
+    [_supportBlock, createHashMapFromArray [["warTier", _warTier], ["minWarTier", _minWarTier]]] call _makeFailure
 };
 
 private _resolveBaseCost = {

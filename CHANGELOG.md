@@ -2,6 +2,19 @@
 
 All notable changes to [A3UE] AI FPV Drones. Versions match the Steam Workshop item.
 
+## 1.0.7
+
+- **Settings** in Options → Addon Options → [A3UE] AI FPV Drones (CBA). They are server settings: the host's or server's values apply to everyone.
+  - **Site drone frequency:** Off, Less, Normal, More or Always.
+  - **Drones per site:** Fewer, Normal or More.
+  - **Lost drone replacement:** never, or one drone every 15, 30 or 60 minutes, ready for the next time the site spawns.
+  - **Enemy FPV strikes:** on or off.
+  - **Earliest war level for FPV strikes:** 1–10, default 3.
+  - **Rivals FPV drone:** on or off.
+  - **Debug logging:** on or off.
+- **Attack waves.** Major attack waves offer an FPV strike only when one is allowed. Below the minimum war level, they no longer swap the refused FPV for an extra attack helicopter.
+- **Debug logging only logs.** It no longer makes every site spawn drones; use the "Always" frequency for that.
+
 ## 1.0.6
 
 - **Quieter server logs.**

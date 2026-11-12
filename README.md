@@ -4,12 +4,12 @@ FPV kamikaze drones for [Antistasi Ultimate](https://steamcommunity.com/sharedfi
 
 Enemy sites launch drones that fly out on their own, find a target and dive on it. You'll hear the buzz before you see them. Shoot them down, get under cover or keep moving.
 
-**Status:** public beta, version 1.0.6. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3735346298).
+**Status:** public beta, version 1.0.7. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3735346298).
 
 ## Features
 
 - **Enemy sites defend themselves with drones.** When an Occupant or Invader airport, outpost or resource site becomes active, it may launch a few FPV drones.
-  - Each site has a limited stock per session. Lost drones are not replaced at once; the stock refills slowly.
+  - Each site has a limited stock per session. Lost drones are never replaced mid-fight; a site gets them back slowly, ready for the next time it spawns.
   - Not every site has drones; bigger sites are more likely to have them.
 - **The drones fly themselves.** They take off out of sight, fly in above the trees, search the area, pick a target, chase it and dive.
   - Anti-tank drones prioritize vehicles and anti-personnel drones prioritize infantry. With no preferred target around, either will go after whatever it finds.
@@ -71,9 +71,38 @@ A3UExtender is **not** needed.
 
 ## Settings
 
-There is no settings menu in this beta. Spawn chances, stock and flight tuning use the built-in defaults.
+Open **Options → Addon Options → [A3UE] AI FPV Drones** (a CBA settings menu).
 
-Server admins who want to experiment can find the main tuning variables in the [architecture overview](docs/architecture.md#tuning-advanced). They are unsupported and may change between versions.
+These are server settings: everyone in the game uses the server's values.
+- **Player-hosted:** the host sets them, in the main menu or during the mission.
+- **Dedicated server:** a logged-in admin sets them in-game, or the server sets them in CBA's settings file (`cba_settings.sqf`).
+
+| Setting | Options (default in bold) | What it does | Takes effect |
+|---|---|---|---|
+| Site drone frequency | Off · Less · **Normal** · More · Always | How likely each enemy site is to have drones. Less halves the chance, More raises it by half, Always gives every site drones, Off stops site drones | For sites that haven't spawned yet (see below) |
+| Drones per site | Fewer · **Normal** · More | One drone fewer or more at both ends of each site's range, never fewer than one | For sites that haven't spawned yet |
+| Lost drone replacement | Never · **Every 15 minutes** · 30 · 60 | How quickly a site gets back drones it lost: one per interval, up to its starting number, for the next time it spawns (see below) | Straight away |
+| Enemy FPV strikes | **On** · Off | FPV strikes as an Occupant and Invader support, and in their counterattacks, attack waves, HQ attacks and punishments. Off: AU uses its normal supports | Straight away |
+| Earliest war level for FPV strikes | 1–10, **3** | The war level from which those strikes are available | Straight away |
+| Rivals FPV drone | **On** · Off | The Rivals' drone attack launches a real FPV when their faction has no drones of its own. Off: normal AU behaviour | Straight away |
+| Debug logging | **Off** · On | Extra `[A3UE_FPV]` lines in the server's RPT log for troubleshooting | Straight away |
+
+**Why some settings only affect sites that haven't spawned yet:** each site decides whether it has drones, and how many, the first time its garrison spawns after the mission starts or loads (and again if it changes hands). A changed frequency or drones-per-site setting applies to sites that haven't spawned yet. A site that already spawned keeps its drones until the mission restarts or the site changes hands. Off is the exception: a site that spawned while it was Off decides the next time it spawns, once it's back on.
+
+**How lost drones come back:** a site never gets new drones during a fight; it only launches drones when its garrison spawns. When the site despawns, its surviving drones go back to it. Lost ones come back one per interval, counted from when the site launched them, up to the number it started with, so they're there the next time it spawns.
+
+Chance of drones per site type with each frequency:
+
+| Site | Less | **Normal** | More | Always |
+|---|---|---|---|---|
+| Airport | 30% | **60%** | 90% | 100% |
+| Military base | 25% | **50%** | 75% | 100% |
+| Seaport | 22.5% | **45%** | 67.5% | 100% |
+| Outpost | 17.5% | **35%** | 52.5% | 100% |
+| Factory | 15% | **30%** | 45% | 100% |
+| Resource | 12.5% | **25%** | 37.5% | 100% |
+
+Server admins who want to tune flight and performance can find more variables in the [architecture overview](docs/architecture.md#tuning-advanced). Those are unsupported and may change between versions.
 
 ## Known limitations
 

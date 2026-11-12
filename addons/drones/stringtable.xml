@@ -13,5 +13,89 @@
         <Key ID="STR_A3UE_FPV_NOTIFIERS_SUP_EXECUTE_FPV_MARKER">
             <English>FPV drones</English>
         </Key>
+        <Key ID="STR_A3UE_FPV_SET_CATEGORY">
+            <English>[A3UE] AI FPV Drones</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUB_SITES">
+            <English>Enemy sites</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUB_SUPPORTS">
+            <English>Enemy supports</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUB_DIAGNOSTICS">
+            <English>Diagnostics</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_FREQUENCY">
+            <English>Site drone frequency</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_FREQUENCY_TIP">
+            <English>How likely each enemy airport, base, outpost or resource site is to have FPV drones. Less halves the normal chance, More raises it by half, Always gives every site drones, Off stops site drones (FPV strikes and Rivals have their own settings). Each site decides the first time its garrison spawns after the mission starts or loads, so a change only affects sites that haven't spawned yet. A site that spawned while this was Off decides the next time it spawns.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_PERSITE">
+            <English>Drones per site</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_PERSITE_TIP">
+            <English>How many drones a site has when it has any. Fewer and More take away or add one drone at both ends of each site's range (always at least one). Like the frequency, this only affects sites that haven't spawned yet since the mission started or loaded.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_REFILL">
+            <English>Lost drone replacement</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_REFILL_TIP">
+            <English>How quickly a site gets back drones it has lost. Lost drones are never replaced mid-fight: a site only launches drones when its garrison spawns. One lost drone comes back per interval (counted from when the site's drones launched), up to its starting number, ready for the next time the site spawns. Never: lost drones stay lost until the mission restarts or the site changes hands. Applies straight away.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUPPORT">
+            <English>Enemy FPV strikes</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUPPORT_TIP">
+            <English>Lets Occupants and Invaders call FPV strikes as a support and add them to counterattacks, attack waves, HQ attacks and punishments. Off: they use AU's normal supports only. Applies straight away.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_WARTIER">
+            <English>Earliest war level for FPV strikes</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_WARTIER_TIP">
+            <English>The war level from which Occupants and Invaders can use FPV strikes. Applies straight away.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_RIVALS">
+            <English>Rivals FPV drone</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_RIVALS_TIP">
+            <English>When the Rivals' faction has no drones of its own, their drone attack launches a real FPV drone. Off: Rivals behave as in normal AU. Applies straight away.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_DEBUG">
+            <English>Debug logging</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_DEBUG_TIP">
+            <English>Writes extra [A3UE_FPV] lines to the server's RPT log for troubleshooting. Leave it off for normal play: it adds work on a busy server.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_OFF">
+            <English>Off</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_LESS">
+            <English>Less</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_NORMAL">
+            <English>Normal</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_MORE">
+            <English>More</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_ALWAYS">
+            <English>Always</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_FEWER">
+            <English>Fewer</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_NEVER">
+            <English>Never</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_15MIN">
+            <English>Every 15 minutes</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_30MIN">
+            <English>Every 30 minutes</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_OPT_60MIN">
+            <English>Every 60 minutes</English>
+        </Key>
     </Package>
 </Project>

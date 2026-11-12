@@ -72,7 +72,8 @@ sequenceDiagram
 
 1. **Activation.** AU spawns a site's garrison and raises its "location spawned" event. Sites at war with the players (Occupants or Invaders) are eligible.
 2. **Stock.** The first time a side holds a site in a session, the server rolls that site's chance and stock from doctrine.
-   - Destroyed or spent drones deplete the stock; one drone refills every 15 minutes.
+   - Destroyed or spent drones deplete the stock; one drone refills every 15 minutes by default.
+   - The frequency, drones-per-site and refill [settings](../README.md#settings) adjust these rolls.
    - A captured site starts fresh.
    - Nothing is written to the AU save.
 3. **Deployment.** The server queue deploys a site's drones in turn.
@@ -148,9 +149,23 @@ All lines go to the RPT log of the machine that runs the code (the server for al
 
 From the debug console, `copyToClipboard str (call A3UE_fnc_fpv_debugSnapshot)` copies the live state: registry, sites, supports and drones. Setting `A3UE_FPV_debug = true` on the server adds verbose logging. Don't leave it on for performance tests.
 
+## Settings
+
+The player-facing settings are CBA settings, listed in the [README](../README.md#settings). How they work:
+
+- **Registration:** `fn_fpv_registerSettings` declares them in CBA's preInit on every machine, the way AU registers its own. Every one is a global (server) setting: the server's value applies to everyone, and only the host or a logged-in admin can change it.
+- **Storage:** CBA stores each value as a mission variable of the same name, for example `A3UE_FPV_siteFrequency`.
+- **Validation:** `fn_fpv_userSetting` is the one reader. It validates every value and falls back to the default, so a bad entry in `cba_settings.sqf` can't produce an out-of-range value. Without CBA the defaults apply.
+- **Where each applies:**
+  - frequency and drones per site: where a site rolls its stock (`fn_fpv_siteStock`);
+  - refill: on every stock use;
+  - FPV strikes and their war level: `fn_fpv_supportAllowed`, which every FPV support request passes and which the attack-wave override asks before offering FPV;
+  - Rivals: the Rivals availability check.
+- **Logging:** the server logs `[A3UE_FPV] setting <name>=<value>` at start-up and on every change.
+
 ## Tuning (advanced)
 
-There is no settings menu. The values below are mission variables read live on the server.
+The values below aren't in the settings menu. They are mission variables read live on the server.
 
 - To set one, run `missionNamespace setVariable ["A3UE_FPV_attackersPerTarget", 2]` in the debug console with **Server Exec**, or put it in a server-side init script.
 - They are unsupported and may change between versions.
@@ -163,7 +178,6 @@ There is no settings menu. The values below are mission variables read live on t
 | `A3UE_FPV_attackSpeedScale` | `1` | Dive speed: `0` is the old slow dive, `1` the tuned table, up to `1.5` |
 | `A3UE_FPV_attackReversal` | `true` | Allow the one "flip back" after a close miss |
 | `A3UE_FPV_launchStandoff` | `800` | Minimum launch distance from hostile players, metres |
-| `A3UE_FPV_siteStockRefillSeconds` | `900` | Seconds per drone of site stock refill |
 | `A3UE_FPV_frameBudgetMs` | `2.5` | Frame director time per frame, ms (0.5–10) |
 | `A3UE_FPV_frameDriver` | `true` | `false` steps every drone from the scheduler only (slower dives under load) |
 | `A3UE_FPV_perfLog` | `false` | `director` line every 10 s instead of 60 s |
