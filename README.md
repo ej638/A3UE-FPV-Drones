@@ -4,7 +4,7 @@ FPV kamikaze drones for [Antistasi Ultimate](https://steamcommunity.com/sharedfi
 
 Enemy sites launch drones that fly out on their own, find a target and dive on it. You'll hear the buzz before you see them. Shoot them down, get under cover or keep moving.
 
-**Status:** public beta, version 1.0.7. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3735346298).
+**Status:** public beta, version 1.0.7. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629).
 
 ## Features
 
@@ -48,7 +48,7 @@ A3UExtender is **not** needed.
 
 ### Players
 
-1. Subscribe on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3735346298). The drone packs are listed as Required Items; untick any you don't want in the launcher.
+1. Subscribe on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629). The drone packs are listed as Required Items; untick any you don't want in the launcher.
 2. Load it with Antistasi Ultimate, CBA and your drone packs.
 3. Start or continue an Antistasi campaign. There is nothing to place in the editor and no menu to set up.
 
