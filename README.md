@@ -4,7 +4,7 @@ FPV kamikaze drones for [Antistasi Ultimate](https://steamcommunity.com/sharedfi
 
 Enemy sites launch drones that fly out on their own, find a target and dive on it. You'll hear the buzz before you see them. Shoot them down, get under cover or keep moving.
 
-**Status:** public beta, version 1.0.7. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629).
+**Status:** public beta, version 1.0.8. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629).
 
 ## Features
 
@@ -15,6 +15,7 @@ Enemy sites launch drones that fly out on their own, find a target and dive on i
   - Anti-tank drones prioritize vehicles and anti-personnel drones prioritize infantry. With no preferred target around, either will go after whatever it finds.
 - **Attacks feel like a pilot is flying them.**
   - Each attack comes in on its own line: straight in, high and steep, or round the flank.
+  - **Low approaches.** About one fiber-optic (KVN) attack in three comes in low instead: it skims the ground at 1–4 m, hops over trees and obstacles in its way, and you see it only at the last moment.
   - The aim is corrected on the way down, so the drone weaves slightly as it closes.
   - Sprinting sideways or changing direction late can make it miss.
   - Not every pass is a direct hit: some hit the ground beside you, and some just miss over your head.
@@ -85,6 +86,7 @@ These are server settings: everyone in the game uses the server's values.
 | Enemy FPV strikes | **On** · Off | FPV strikes as an Occupant and Invader support, and in their counterattacks, attack waves, HQ attacks and punishments. Off: AU uses its normal supports | Straight away |
 | Earliest war level for FPV strikes | 1–10, **3** | The war level from which those strikes are available | Straight away |
 | Rivals FPV drone | **On** · Off | The Rivals' drone attack launches a real FPV when their faction has no drones of its own. Off: normal AU behaviour | Straight away |
+| Low approach chance | 0–100%, **33%** | How often a fiber-optic (KVN) drone comes in low, skimming the ground and hopping obstacles, instead of attacking from above. Only for attacks begun 300 m or more away on soldiers on foot or parked vehicles. 0% turns it off | For the next attacks |
 | Debug logging | **Off** · On | Extra `[A3UE_FPV]` lines in the server's RPT log for troubleshooting | Straight away |
 
 **Why some settings only affect sites that haven't spawned yet:** each site decides whether it has drones, and how many, the first time its garrison spawns after the mission starts or loads (and again if it changes hands). A changed frequency or drones-per-site setting applies to sites that haven't spawned yet. A site that already spawned keeps its drones until the mission restarts or the site changes hands. Off is the exception: a site that spawned while it was Off decides the next time it spawns, once it's back on.
@@ -113,6 +115,7 @@ Server admins who want to tune flight and performance can find more variables in
   - Server FPS is protected, and drones won't freeze in mid-air the way they could before 1.0.4.
   - Up to two simultaneous dives have been tested; larger numbers are estimated from measured costs.
   - Server admins with spare headroom can raise `A3UE_FPV_frameBudgetMs` (see [Tuning](docs/architecture.md#tuning-advanced)).
+- **Low approaches near trees.** A low drone that has to hop trees close to you can arrive too high to drop onto you and pass over your head. A drone that misses by more than about 8 m doesn't flip back; it turns and searches again.
 - **Drones launched together may pick the same player first.** Drones that launch together choose targets at the same moment, so they often queue on the same player before spreading out.
 
 ## FAQ

@@ -90,8 +90,31 @@ Arma's AI flies a lead-predicted intercept towards the target at the doctrine's 
 | `DIRECT` | Straight in, with the pilot's weave in the dive |
 | `HIGH_DIVE` | Holds height until close, then a steep dive |
 | `FLANK` | Comes in from 30–70° off the direct line, then curves onto the target |
+| `LOW_RUN` | Fiber-optic drones only: glides down early and skims the ground to the target (see [Low approach](#low-approach-fiber-optic-drones)) |
 
 The profile changes only where the approach and dive start. Targeting, commitment and support rules stay the same.
+
+## Low approach (fiber-optic drones)
+
+Since 1.0.8, about one fiber-optic (KVN) attack in three comes in low (the **Low approach chance** setting, default 33%). It's for attacks begun 300 m or more away on a soldier on foot or a parked vehicle. Radio drones never fly low: down among trees and hills their link would drop.
+
+**One rule: fly the lowest safe line to the target.**
+- The line is skim height (1–4 m, drawn per attack, usually under 2 m) over the ground, and 0.7 m over anything within about 5 m either side: trees, walls, vehicles, animals, and soldiers of the drone's own side.
+- It climbs at most 15° and comes down at most 30°, as a real pilot would. A tree on the line is a hop: up, over and back down. Over a wood, the drone runs along the treetops. Before a steep hill it starts climbing early.
+- Power lines and bridges are flown under. Soldiers on the target's side are not avoided: touching one is a hit.
+- The drone surveys the line ahead in small slices while it closes in, and again about once a second while low, starting from where it actually is. Whatever the survey finds is flown. A low approach never gives up or switches to another attack.
+
+**How a low approach runs:**
+
+| Stage | What happens |
+|---|---|
+| Glide | From the hand-off, 350–500 m out, the drone glides down at 15–20° (steeper after a high arrival). It reaches the line by about 250 m out |
+| Skim | It follows the line at 15–20 m/s, with the same left and right corrections as a dive |
+| Sprint | From 60 m or about 2 s out, it speeds up to attack speed and ends like a dive: a direct hit, a ground strike beside you, or a near miss |
+
+**Taking turns:** a drone waiting its turn that will come in low waits about 500 m out instead of 140 m, so it has room to get down.
+
+**Near the target:** a tree or wall close to the target is still hopped. From there the drone may be too high to drop onto the target, so it passes over and turns back, or searches again if it missed by more than about 8 m.
 
 ## The attack run and dive
 
@@ -135,8 +158,11 @@ The fuse is contact-driven. It checks every dive step:
 | Ground near target | A ground intent actually reaches the ground near its chosen point |
 | Obstruction | The target is behind cover and the drone hits the cover |
 | Air proximity | The target is an aircraft and the drone is close enough |
+| Any contact (1.0.8) | During the attack, the drone touches anything: the ground, a tree, a wall, a soldier or a vehicle |
 
-There is **no proximity rescue** for ground targets. A drone that passes close without touching flies past; it doesn't explode next to you.
+There is **no proximity rescue** for ground targets. A drone that passes close without touching anything flies past; it doesn't explode next to you.
+
+Only one warhead ever fires: when the mod's fuse fires, a drone pack's own impact charge is suppressed.
 
 When the fuse fires, the owner sends the strike to the server. The server creates the warhead, so there is one warhead with the right kill credit. See [Drone packs](drone-packs.md#warheads) for which warhead is used.
 
@@ -174,4 +200,4 @@ See [Drone packs](drone-packs.md).
 
 ## Tuning status
 
-The dive speeds, intent weights, weave sizes and overwatch distances are tuned by eye in real games. They may change between versions. See [Tuning (advanced)](architecture.md#tuning-advanced) for the values a server can change.
+The dive speeds, intent weights, weave sizes, overwatch distances and low-approach heights are tuned by eye in real games. They may change between versions. See [Tuning (advanced)](architecture.md#tuning-advanced) for the values a server can change.

@@ -36,6 +36,7 @@ private _result = createHashMapFromArray [
 	["enabled", ["A3UE_FPV_lowRun", true] call _flag],
 	// The natural share (LL-2, EJ 16 November): 1 in 3 eligible attacks. Only fiber drones are
 	// eligible, so this is a third of KVN attacks on a man or a parked vehicle 300 m or more out.
+	// 1.0.8: the CBA setting "Low approach chance" (registerSettings) sets this variable.
 	["weight", ["A3UE_FPV_lowRunWeight", 1 / 3, 0, 1] call _number],
 	["minRange", ["A3UE_FPV_lowRunMinRangeM", 300, 100, 2000] call _number],
 	// The nearest hand-off; a high arrival hands off farther out, up to handoffMax, so the drawn

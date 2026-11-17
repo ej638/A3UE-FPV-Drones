@@ -9,6 +9,7 @@ if (isNil "CBA_fnc_addSetting") exitWith {false};
 private _category = localize "STR_A3UE_FPV_SET_CATEGORY";
 private _sites = [_category, localize "STR_A3UE_FPV_SET_SUB_SITES"];
 private _supports = [_category, localize "STR_A3UE_FPV_SET_SUB_SUPPORTS"];
+private _attacks = [_category, localize "STR_A3UE_FPV_SET_SUB_ATTACKS"];
 private _diagnostics = [_category, localize "STR_A3UE_FPV_SET_SUB_DIAGNOSTICS"];
 private _text = {[localize format ["STR_A3UE_FPV_SET_%1", _this], localize format ["STR_A3UE_FPV_SET_%1_TIP", _this]]};
 
@@ -49,6 +50,13 @@ private _text = {[localize format ["STR_A3UE_FPV_SET_%1", _this], localize forma
 [
 	"A3UE_FPV_rivalsEnabled", "CHECKBOX", "RIVALS" call _text, _supports, true,
 	1, {if (isServer) then {diag_log format ["[A3UE_FPV] setting rivalsEnabled=%1", _this];};}
+] call CBA_fnc_addSetting;
+
+// 1.0.8: the share of eligible fiber-drone attacks that come in low (LOW_RUN), shown as a
+// percentage (CBA 3.16+); 0 turns low approaches off. Read and validated by lowRunSettings.
+[
+	"A3UE_FPV_lowRunWeight", "SLIDER", "LOWRUN" call _text, _attacks, [0, 1, 1 / 3, 0, true],
+	1, {if (isServer) then {diag_log format ["[A3UE_FPV] setting lowRunWeight=%1", _this];};}
 ] call CBA_fnc_addSetting;
 
 [

@@ -22,6 +22,9 @@
         <Key ID="STR_A3UE_FPV_SET_SUB_SUPPORTS">
             <English>Enemy supports</English>
         </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUB_ATTACKS">
+            <English>Drone attacks</English>
+        </Key>
         <Key ID="STR_A3UE_FPV_SET_SUB_DIAGNOSTICS">
             <English>Diagnostics</English>
         </Key>
@@ -57,6 +60,12 @@
         </Key>
         <Key ID="STR_A3UE_FPV_SET_RIVALS">
             <English>Rivals FPV drone</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_LOWRUN">
+            <English>Low approach chance</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_LOWRUN_TIP">
+            <English>How often a fiber-optic drone (KVN) comes in low: skimming the ground and hopping over trees and obstacles instead of attacking from above. Applies to attacks begun 300 m or more away on soldiers on foot or parked vehicles. Radio-controlled drones never fly low. 0% turns low approaches off. Applies to the next attacks.</English>
         </Key>
         <Key ID="STR_A3UE_FPV_SET_RIVALS_TIP">
             <English>When the Rivals' faction has no drones of its own, their drone attack launches a real FPV drone. Off: Rivals behave as in normal AU. Applies straight away.</English>

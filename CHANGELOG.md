@@ -2,6 +2,17 @@
 
 All notable changes to [A3UE] AI FPV Drones. Versions match the Steam Workshop item.
 
+## 1.0.8
+
+- **Low approach for fiber-optic drones.** About one KVN attack in three now comes in low instead of from above.
+  - The drone glides down early, skims the ground at 1–4 m with the pilot's weave, and sprints the last 60 m.
+  - It flies the lowest safe line over whatever is in its way: up over a tree, a wall, a parked vehicle or a hill, then back down. It passes under power lines.
+  - Once it has started a low approach, it never gives it up.
+  - Only KVN drones fly low, against soldiers on foot or parked vehicles at least 300 m away when the attack begins. Radio drones (Ukraine FPV, Crocus) would lose their link that low, so they attack as before.
+  - When drones take turns on you, the next one may wait about 500 m out and come in low after the first strike.
+- **New setting: Low approach chance** (Addon Options → [A3UE] AI FPV Drones → Drone attacks): 0–100%, default 33%. 0% turns low approaches off.
+- **Contact fuse.** During its attack, a drone now detonates when it touches anything: the ground, a tree, a wall, a soldier or a vehicle. Exactly one warhead fires, even when the drone pack has its own impact charge.
+
 ## 1.0.7
 
 - **Settings** in Options → Addon Options → [A3UE] AI FPV Drones (CBA). They are server settings: the host's or server's values apply to everyone.

@@ -10,6 +10,8 @@
 //   ["supportMinWarTier"] -> integer 1..10                                      (default 3)
 //   ["rivalsEnabled"]     -> Boolean                                            (default true)
 //   ["debug"]             -> Boolean                                            (default false)
+// 1.0.8: "A3UE_FPV_lowRunWeight" (Low approach chance, 0..1, default 1/3) is read and validated
+// with the other low-run tunables in A3UE_fnc_fpv_lowRunSettings, not here.
 params [["_name", ""]];
 
 private _choice = {

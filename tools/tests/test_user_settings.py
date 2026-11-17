@@ -1,4 +1,4 @@
-"""User settings (1.0.7): CBA Addon Options registration, validated reads and their effects.
+"""User settings (1.0.7, 1.0.8): CBA Addon Options registration, validated reads and their effects.
 
 Shipped SQF runs in SQF-VM with the F2C-L harness. CBA itself is stubbed: these tests cover
 what the mod registers and how it reads and applies the values, not CBA's menu, saving or
@@ -13,7 +13,10 @@ from f2_commitment_vm import VM, FPV, ROOT
 from test_f2cl_field_fixes import PRELUDE, adapt, run_vm
 
 SETTINGS = ['A3UE_FPV_siteFrequency', 'A3UE_FPV_sitePerSite', 'A3UE_FPV_siteStockRefillSeconds',
-            'A3UE_FPV_supportEnabled', 'A3UE_FPV_supportMinWarTier', 'A3UE_FPV_rivalsEnabled', 'A3UE_FPV_debug']
+            'A3UE_FPV_supportEnabled', 'A3UE_FPV_supportMinWarTier', 'A3UE_FPV_rivalsEnabled', 'A3UE_FPV_debug',
+            'A3UE_FPV_lowRunWeight']
+# 1.0.8: the low approach chance is read with the other low-run tunables, not by userSetting.
+READER = {'A3UE_FPV_lowRunWeight': 'lowRunSettings'}
 
 
 @unittest.skipUnless(VM and Path(VM).is_file(), 'FPV_SQFVM offline interpreter not configured')
@@ -161,13 +164,13 @@ tierWar = "x"; missionNamespace setVariable ["A3UE_FPV_supportEnabled",true]; mi
 [(call _g) # 0,"bad tierWar treated as 1"] call _assert;
 ''')
 
-    def test_registration_declares_seven_global_settings(self):
+    def test_registration_declares_eight_global_settings(self):
         out = self.vm(['registerSettings'], r'''
 [!(call A3UE_fnc_fpv_registerSettings),"no CBA: nothing registered, no error"] call _assert;
 TEST_settings = [];
 CBA_fnc_addSetting = {TEST_settings pushBack _this; true};
 [call A3UE_fnc_fpv_registerSettings,"registered"] call _assert;
-[count TEST_settings == 7,format ["count %1",count TEST_settings]] call _assert;
+[count TEST_settings == 8,format ["count %1",count TEST_settings]] call _assert;
 {
   _x params ["_name","_type","_title","_category","_valueInfo","_global","_script"];
   [_global isEqualTo 1,_name + " not global"] call _assert;
@@ -189,6 +192,10 @@ private _default = {
 [(["A3UE_FPV_supportMinWarTier"] call _default) == 3,"war tier default"] call _assert;
 [(["A3UE_FPV_rivalsEnabled"] call _default),"rivals default"] call _assert;
 [!(["A3UE_FPV_debug"] call _default),"debug default"] call _assert;
+// 1.0.8: the low approach chance, a percentage slider (CBA 3.16+) over the 0..1 share, default 1 in 3.
+[abs ((["A3UE_FPV_lowRunWeight"] call _default) - 1 / 3) < 1e-6,"low approach default"] call _assert;
+[((_byName get "A3UE_FPV_lowRunWeight") # 4) isEqualTo [0,1,1 / 3,0,true],"low approach slider 0-100%"] call _assert;
+[((_byName get "A3UE_FPV_lowRunWeight") # 3) # 1 == "STR_A3UE_FPV_SET_SUB_ATTACKS","low approach under Drone attacks"] call _assert;
 [((_byName get "A3UE_FPV_supportMinWarTier") # 4) isEqualTo [1,10,3,0],"war tier slider 1-10"] call _assert;
 [(((_byName get "A3UE_FPV_siteFrequency") # 4) # 0) isEqualTo ["OFF","LESS","NORMAL","MORE","ALWAYS"],"frequency values"] call _assert;
 [(((_byName get "A3UE_FPV_siteStockRefillSeconds") # 4) # 0) isEqualTo [0,900,1800,3600],"refill values"] call _assert;
@@ -233,7 +240,7 @@ class UserSettingsContracts(unittest.TestCase):
         reader = self.src('userSetting')
         for var in SETTINGS:
             self.assertIn(f'"{var}"', reg, var)
-            self.assertIn(f'"{var}"', reader, var)
+            self.assertIn(f'"{var}"', self.src(READER[var]) if var in READER else reader, var)
 
     def test_settings_are_wired_where_they_apply(self):
         stock = self.code(self.src('siteStock'))

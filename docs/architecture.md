@@ -160,7 +160,8 @@ The player-facing settings are CBA settings, listed in the [README](../README.md
   - frequency and drones per site: where a site rolls its stock (`fn_fpv_siteStock`);
   - refill: on every stock use;
   - FPV strikes and their war level: `fn_fpv_supportAllowed`, which every FPV support request passes and which the attack-wave override asks before offering FPV;
-  - Rivals: the Rivals availability check.
+  - Rivals: the Rivals availability check;
+  - low approach chance (1.0.8): read and validated with the other low-approach values in `fn_fpv_lowRunSettings`, where each attack draws its approach (`fn_fpv_attackEngagement`).
 - **Logging:** the server logs `[A3UE_FPV] setting <name>=<value>` at start-up and on every change.
 
 ## Tuning (advanced)
@@ -181,6 +182,10 @@ The values below aren't in the settings menu. They are mission variables read li
 | `A3UE_FPV_frameBudgetMs` | `2.5` | Frame director time per frame, ms (0.5–10) |
 | `A3UE_FPV_frameDriver` | `true` | `false` steps every drone from the scheduler only (slower dives under load) |
 | `A3UE_FPV_perfLog` | `false` | `director` line every 10 s instead of 60 s |
+| `A3UE_FPV_lowRun` | `true` | `false` turns low approaches off completely, whatever the setting |
+| `A3UE_FPV_lowRunMaxM` | `4` | Highest skim height of a low approach, metres (the lowest is `A3UE_FPV_lowRunFloorM`, `1`) |
+| `A3UE_FPV_lowRunWeaveCapM` | `3.5` | How far a low drone weaves either side of its line, metres; obstacles within this plus 1.5 m are flown over |
+| `A3UE_FPV_contactFuseAny` | `true` | `false` restores the 1.0.7 fuse: no detonation on touching the ground or an obstacle away from the target |
 
 ## Compatibility
 
