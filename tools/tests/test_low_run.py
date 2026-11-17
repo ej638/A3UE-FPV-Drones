@@ -376,8 +376,8 @@ class LowRunDecisionSQF(unittest.TestCase):
     def test_settings_defaults_and_sanitising(self):
         self.vm(r'''
 private _s = call A3UE_fnc_fpv_lowRunSettings;
-// LL-1: 13 tunables; the rest are design constants.
-[(_s get "enabled") && {(_s get "weight") == 0} && {(_s get "minRange") == 300} && {(_s get "handoff") == 350}
+// LL-1: 13 tunables; the rest are design constants. LL-2: the natural share, 1 in 3 (EJ).
+[(_s get "enabled") && {abs ((_s get "weight") - 1 / 3) < 1e-6} && {(_s get "minRange") == 300} && {(_s get "handoff") == 350}
   && {(_s get "handoffMax") == 500} && {(_s get "floor") == 1} && {(_s get "max") == 4} && {(_s get "skimSpeed") isEqualTo [15, 20]}
   && {(_s get "weaveCap") == 3.5} && {(_s get "waitRing") == 500} && {(_s get "checkUnits") == 16} && {(_s get "contactAny")}
   && {(_s get "forcedHeight") == -1} && {(_s get "sprintM") == 60} && {(_s get "sprintS") == 2.2} && {(_s get "recheck") == 1}
@@ -421,6 +421,7 @@ private _sample = {
   [_uav, _person, _identity, true] call _function
 };
 // Weight 0 (forced only) and the master switch off: every seed picks today's profile and parameters.
+missionNamespace setVariable ["A3UE_FPV_lowRunWeight", 0];
 private _same = true; private _n = 0;
 for "_s" from 0 to 4095 step 7 do {
   if !((([_s, A3UE_fnc_fpv_attackEngagement] call _sample) select [1, 3]) isEqualTo (([_s, FPV_baseEngagement] call _sample) select [1, 3])) then {_same = false;};
@@ -444,6 +445,14 @@ diag_log ["LOW_SHARE", _low, _n];
 [abs ((_low / _n) - 0.15) < 0.05, format ["about 15%% low runs: %1 of %2", _low, _n]] call _assert;
 [_othersOk, "every other seed is exactly the profile 1.0.7 picks"] call _assert;
 [_paramsOk, "sampled skim height, speed and glide in range; nothing else carried"] call _assert;
+// LL-2: the default share is 1 in 3 (EJ, 16 November).
+missionNamespace setVariable ["A3UE_FPV_lowRunWeight", "default"];  // not a number: the default
+_low = 0;
+for "_s" from 0 to 4095 step 7 do {
+  if (((([_s, A3UE_fnc_fpv_attackEngagement] call _sample)) # 1) == "LOW_RUN") then {_low = _low + 1;};
+};
+diag_log ["LOW_SHARE_DEFAULT", _low, _n];
+[abs ((_low / _n) - (1 / 3)) < 0.05, format ["about 1 in 3 low runs by default: %1 of %2", _low, _n]] call _assert;
 // LL-1: a radio drone never goes low (EJ: fiber only); every seed is 1.0.7's.
 _uav setVariable ["A3UE_FPV_linkModel", "RADIO"];
 _same = true;
@@ -605,6 +614,8 @@ private _waiter = {
   _uav setVariable ["A3UE_FPV_attackEngagement", []];
   [_uav, _person, _identity] call A3UE_fnc_fpv_lowRunWaiter
 };
+// LL-2: the natural share is 1 in 3 by default; off here, so only the QA force decides.
+missionNamespace setVariable ["A3UE_FPV_lowRunWeight", 0];
 [!(call _waiter), "natural share off: waits on the 140 m ring"] call _assert;
 missionNamespace setVariable ["A3UE_FPV_QA_forceProfile", "LOW_RUN"];
 [call _waiter, "forced: waits on the outer ring, 150 m out now"] call _assert;
@@ -878,7 +889,7 @@ FLY = r'''
 _person setVariable ["box", [[-0.25,-0.25,0],[0.25,0.25,1.85],1]]; _person setVariable ["side", west];
 FPV_world pushBack _person;
 private _fly = {
-  params ["_seed", "_intent", ["_events", []], ["_steps", 900], ["_transit", 35.15], ["_from", 430]];
+  params ["_seed", "_intent", ["_events", []], ["_steps", 900], ["_transit", 35.15], ["_from", 430], ["_tv", [0,0,0]]];
   missionNamespace setVariable ["A3UE_FPV_QA_seed", _seed];
   missionNamespace setVariable ["A3UE_FPV_QA_forceIntent", _intent];
   missionNamespace setVariable ["A3UE_FPV_QA_forceProfile", "LOW_RUN"];
@@ -891,6 +902,15 @@ private _fly = {
   _uav setVariable ["A3UE_FPV_mode", "TRACKING"];
   private _tp = _person getVariable "position";
   private _body = _tp vectorAdd [0,0,1.15];
+  // A moving target (the man walks or runs at _tv over the ground; the pilot's estimate follows him).
+  _person setVariable ["velocity", +_tv];
+  private _walk = {
+    params ["_dt"];
+    if !(_tv isEqualTo [0,0,0]) then {
+      _tp = _tp vectorAdd (_tv vectorMultiply _dt); _tp set [2, [_tp # 0, _tp # 1] call FPV_ground];
+      _person setVariable ["position", +_tp]; _body = _tp vectorAdd [0,0,1.15];
+    };
+  };
   private _p = [(_tp # 0) - _from, 0, 0];
   _p set [2, ([_p # 0, 0] call FPV_ground) + _transit];
   _uav setVariable ["position", +_p]; _uav setVariable ["velocity", [22,0,0]];
@@ -900,6 +920,7 @@ private _fly = {
   for "_i" from 0 to 400 do {
     if (!_gate) then {
       FPV_time = FPV_time + 0.1; FPV_observed = FPV_observed + 0.1; FPV_frame = FPV_frame + 6;
+      [0.1] call _walk;
       _p = _p vectorAdd [2.2, 0, 0]; _p set [2, ([_p # 0, 0] call FPV_ground) + _transit];
       _uav setVariable ["position", +_p];
       [_uav, _person, _identity] call A3UE_fnc_fpv_lowRunTrack;
@@ -919,6 +940,7 @@ private _fly = {
   for "_i" from 0 to _steps do {
     if ((_m get "end") != "RUN") exitWith {};
     FPV_time = FPV_time + 0.05; FPV_observed = FPV_observed + 0.05; FPV_frame = FPV_frame + 3;
+    [0.05] call _walk;
     {
       if (!(_x param [2, false]) && {(_p # 0) >= (_x # 0)}) then {_x set [2, true]; call (_x # 1);};
     } forEach _events;
@@ -983,6 +1005,11 @@ private _fly = {
     if (_stage in ["SKIM", "SPRINT"] && {_range > 15}) then {
       _m set ["minClear", (_m get "minClear") min _clear];
       _m set ["maxDrift", (_m get "maxDrift") max (abs (_p # 1))];
+    };
+    // Off the surveyed line (its corridor is weaveCap + 1.5 either side), while surveys still run.
+    if (_stage in ["DESCEND", "SKIM"]) then {
+      private _h = [_uav, _p] call A3UE_fnc_fpv_lowRunLineAt;
+      if (count _h == 4) then {_m set ["maxOff", (_m getOrDefault ["maxOff", 0]) max (abs (_h # 2))];};
     };
     if (_stage == "SKIM") then {
       _m set ["maxSkimClear", (_m get "maxSkimClear") max _clear];
@@ -1054,6 +1081,36 @@ diag_log ["OPEN_ROWS", _rows];
         for line in lines:
             self.assertRegex(line, r'result=COMMITTED reason=(DIRECT_CONTACT|PREDICTED_IMPACT) heightM=1 handoffM=3[4-6]\d glideDeg=(1[5-9]|20)(\.\d)? '
                                    r'skimFromM=2[1-4]\d under5M=2[3-7]\d minClearM=[\d.]+ hopTopM=0 hopBy=none surveys=\d+ sliceMsMax=[\d.]+ waited=0$')
+
+    def test_a_moving_target(self):
+        out = self.vm(r'''
+// LL-2: the man walks or runs during the run. The survey aims at the pilot's estimate of him; the
+// drone steers at its led estimate, so it must stay inside the corridor the last survey measured.
+missionNamespace setVariable ["A3UE_FPV_QA_lowRunHeight", 1.0];
+private _rows = [];
+{
+  _x params ["_name", "_tv"];
+  _person setVariable ["position", [400,0,10]];
+  private _m = [11, "DIRECT", [], 900, 35.15, 430, _tv] call _fly;
+  private _b = [_m] call _brief;
+  private _off = _m getOrDefault ["maxOff", -1];
+  _rows pushBack [_name, _b, (round (_off * 100)) / 100, round (_m get "under5M")];
+  // Measured (LL-2): every case struck at 2.95-4.46 m, about 1.9 m up while skimming, at most 2.8 m
+  // off the line, under 5 m from 233-288 m. The airframe's 1-1.5 s lag is the engine's to show.
+  [(_m get "end") == "FUSE" && {(_m get "closest") <= 5}, format ["%1 strikes: %2", _name, _b]] call _assert;
+  [(_m get "minClear") >= 0.6 && {(_m get "maxSkimClear") <= 2.2}, format ["%1 stays low: %2", _name, _b]] call _assert;
+  [_off >= 0 && {_off <= 3.5 + 1.5}, format ["%1 inside the surveyed corridor: %2 m off", _name, _off]] call _assert;
+  [(_m get "under5M") >= 200, format ["%1 low from %2 m", _name, _m get "under5M"]] call _assert;
+} forEach [["still", [0,0,0]], ["walk across", [0,1.5,0]], ["run across", [0,5,0]], ["run at", [-5,0,0]],
+  ["run away", [5,0,0]], ["run diagonal", [3.5,3.5,0]]];
+_person setVariable ["position", [400,0,10]]; _person setVariable ["velocity", [0,0,0]];
+{diag_log ["MOVING_ROW", _x];} forEach _rows;
+''')
+        self.assertIn('MOVING_ROW', out)
+        lines = [line for line in out.splitlines() if '[A3UE_FPV] lowRun ' in line]
+        self.assertEqual(len(lines), 6, out[-3000:])
+        for line in lines:
+            self.assertRegex(line, r'result=COMMITTED reason=(DIRECT_CONTACT|PREDICTED_IMPACT) heightM=1 ')
 
     def test_high_arrival_glides_down_early_and_fast(self):
         out = self.vm(r'''
@@ -1388,7 +1445,9 @@ call _fly;
         out = self.sqf(r'''
 // LR-1c, EJ's scenario under the QA switch LOW_RUN_WING: the first drone attacks the normal way,
 // the second waits on the low run's 500 m ring (not the 140 m one) and is low when cleared.
-// (The harness acquires the man inside about 350 m, so both start there.)
+// (The harness acquires the man inside about 350 m, so both start there.) LL-2: the natural share
+// is off here, so only the QA switch decides (with it on, a first drone may draw low by itself).
+missionNamespace setVariable ["A3UE_FPV_lowRunWeight", 0];
 missionNamespace setVariable ["A3UE_FPV_QA_forceProfile", "LOW_RUN_WING"];
 private _step = {params ["_dt"]; FPV_time = FPV_time + _dt; FPV_observed = FPV_observed + _dt; FPV_frame = FPV_frame + 3;};
 _uav setVariable ["position", [60,0,45]];
@@ -1423,7 +1482,9 @@ private _second = _d2 getVariable ["A3UE_FPV_attackEngagement", []];
 // LR-1d, engine session 1c (W1); engine session 1d: 5 of 5 first drones attacked normally. An earlier
 // attack on the same target left its holder on the board, so each pair starts with the follow-up
 // delay and both drones wait. Under LOW_RUN_WING neither is nominated then; the first one cleared
-// attacks as it would, and only the one waiting behind it goes low.
+// attacks as it would, and only the one waiting behind it goes low. LL-2: the natural share is off
+// here, so only the QA switch decides.
+missionNamespace setVariable ["A3UE_FPV_lowRunWeight", 0];
 missionNamespace setVariable ["A3UE_FPV_QA_forceProfile", "LOW_RUN_WING"];
 private _step = {params ["_dt"]; FPV_time = FPV_time + _dt; FPV_observed = FPV_observed + _dt; FPV_frame = FPV_frame + 3;};
 private _old = ["VMUAV", "old"] call _make; _old setVariable ["alive", false];

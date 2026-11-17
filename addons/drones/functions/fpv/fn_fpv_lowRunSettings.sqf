@@ -34,8 +34,9 @@ if (!(_forcedHeight isEqualType 0) || {!finite _forcedHeight} || {_forcedHeight 
 };
 private _result = createHashMapFromArray [
 	["enabled", ["A3UE_FPV_lowRun", true] call _flag],
-	// Forced only (QA) until the natural share is set (design: 0.15 of eligible attacks).
-	["weight", ["A3UE_FPV_lowRunWeight", 0, 0, 1] call _number],
+	// The natural share (LL-2, EJ 16 November): 1 in 3 eligible attacks. Only fiber drones are
+	// eligible, so this is a third of KVN attacks on a man or a parked vehicle 300 m or more out.
+	["weight", ["A3UE_FPV_lowRunWeight", 1 / 3, 0, 1] call _number],
 	["minRange", ["A3UE_FPV_lowRunMinRangeM", 300, 100, 2000] call _number],
 	// The nearest hand-off; a high arrival hands off farther out, up to handoffMax, so the drawn
 	// 15-20 deg glide is down by skimFrom + levelOut (LR-1c, proven in engine sessions 1c and 1d).
