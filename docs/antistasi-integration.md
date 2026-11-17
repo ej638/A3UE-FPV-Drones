@@ -136,4 +136,4 @@ AU tracks what each side spends. The mod keeps that consistent:
   - With no drone pack loaded, AU's own current version of each function runs.
   - With a pack loaded, the mod's copy runs. If AU changes one of them, the game uses the mod's older copy until this mod is updated.
   - That is why `compat/` pins their hashes and the drift check exists.
-- Tested AU versions: 12.0.3 and 12.4.1.
+- Tested AU versions: 12.0.3, 12.4.1 and 12.4.2.

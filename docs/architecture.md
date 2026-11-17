@@ -190,7 +190,7 @@ The values below aren't in the settings menu. They are mission variables read li
 ## Compatibility
 
 - **Arma 3:** the declared minimum is 2.14; development and testing are on 2.22.
-- **Antistasi Ultimate:** tested on 12.0.3 and 12.4.1.
+- **Antistasi Ultimate:** tested on 12.0.3, 12.4.1 and 12.4.2.
   - The mod checks AU's functions at start-up and logs what it found.
   - It never switches features off just because an AU version is newer than the tested ones.
   - A hook that can't be installed falls back to AU's normal behaviour and is named in the start-up summary.

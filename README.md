@@ -31,7 +31,7 @@ Enemy sites launch drones that fly out on their own, find a target and dive on i
 
 ## Requirements
 
-- [Antistasi Ultimate](https://steamcommunity.com/sharedfiles/filedetails/?id=3020755032). Tested on 12.0.3 and 12.4.1.
+- [Antistasi Ultimate](https://steamcommunity.com/sharedfiles/filedetails/?id=3020755032). Tested on 12.0.3, 12.4.1 and 12.4.2.
 - [CBA_A3](https://steamcommunity.com/sharedfiles/filedetails/?id=450814997), which AU already needs.
 - **At least one** of these drone packs:
 

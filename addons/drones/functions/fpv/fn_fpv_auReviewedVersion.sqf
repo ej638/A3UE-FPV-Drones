@@ -4,5 +4,5 @@
 // and no feature switches off on an AU release that is not on the list.
 // Returns [loaded A3A_core versionStr, reviewed versions, loaded version is reviewed].
 private _version = getText (configFile >> "CfgPatches" >> "A3A_core" >> "versionStr");
-private _reviewed = ["12.0.3", "12.4.1"];
+private _reviewed = ["12.0.3", "12.4.1", "12.4.2"];
 [_version, _reviewed, _version in _reviewed]

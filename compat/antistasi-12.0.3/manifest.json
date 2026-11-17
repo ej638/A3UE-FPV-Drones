@@ -99,6 +99,21 @@
           "sha256_lf": "c0f49d4f591238ab80d19ea342a0280ea15f064fcfb6bd64c9032e7f0dace900"
         }
       ]
+    },
+    {
+      "version": "12.4.2",
+      "reviewed": "2026-11-13",
+      "source": "GitHub tag v12.4.2 (c7c82476); 8 files differ from 12.4.1, none the addon overrides or depends on except the version header (PATCHLVL 1->2). Review receipt: .hemttout/verification/au-12.4.2-review-20261113-001/RECEIPT.md. Engine sessions LL-1, LL-2 and 1.0.8 RC1 ran on AU 12.4.2 (16 November). Recorded on EJ's go, 17 November.",
+      "contracts": [
+        {
+          "path": "CfgFunctions.hpp",
+          "sha256_lf": "89f8add88cba22962519b56d66bb023813ef818d4245d214191285e215d3e188"
+        },
+        {
+          "path": "Includes/script_version.hpp",
+          "sha256_lf": "17bf6cabc7408b3237072ec5cc270c80ba305814bd4fef83a5b2fcfbfe4f18ba"
+        }
+      ]
     }
   ],
   "build_headers": [

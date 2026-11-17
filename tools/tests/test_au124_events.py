@@ -228,10 +228,10 @@ A3UE_FPV_debug = true;
         self.assertIn('marker=Galati', out)
         self.assertNotIn('marker=Koroni', out)
 
-    def test_reviewed_list_reports_12_0_3_and_12_4_1_and_gates_no_feature(self):
+    def test_reviewed_list_reports_12_0_3_to_12_4_2_and_gates_no_feature(self):
         # A3A_core versionStr = QUOTE(VERSION): "12.4.1", or "12.5" for a .0 patch level.
         helper = 'A3UE_fnc_fpv_auReviewedVersion = {' + shipped('fn_fpv_auReviewedVersion') + '};\n'
-        for version, reviewed in [('12.0.3', True), ('12.4.1', True), ('12.4.2', False), ('12.5', False), ('', False)]:
+        for version, reviewed in [('12.0.3', True), ('12.4.1', True), ('12.4.2', True), ('12.4.3', False), ('12.5', False), ('', False)]:
             out = self.vm(AU124_API, helper + f'''
 private _r = [] call A3UE_fnc_fpv_auReviewedVersion;
 [(_r # 0) == "{version}" && {{(_r # 2) isEqualTo {str(reviewed).lower()}}}, format ["gate %1", _r]] call _assert;

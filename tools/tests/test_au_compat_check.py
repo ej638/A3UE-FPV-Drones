@@ -102,9 +102,10 @@ class Mutations(unittest.TestCase):
         self.assertTrue(has(findings, "REVIEW", "pins", "Changed AU contract"))
 
     def test_unlisted_au_patch_asks_for_review_but_switches_nothing_off(self):
-        self.edit("A3A/addons/core/Includes/script_version.hpp", "#define PATCHLVL 1", "#define PATCHLVL 2")
+        # 12.4.2 is reviewed (17 November); a next patch, 12.4.3, is not.
+        self.edit("A3A/addons/core/Includes/script_version.hpp", "#define PATCHLVL 1", "#define PATCHLVL 3")
         findings = check.run_checks(self.au)
-        self.assertTrue(has(findings, "REVIEW", "gates", "AU 12.4.2 is not in the reviewed list"))
+        self.assertTrue(has(findings, "REVIEW", "gates", "AU 12.4.3 is not in the reviewed list"))
         self.assertTrue(has(findings, "REVIEW", "gates", "Nothing switches off for players"))
         self.assertFalse([f for f in findings if f.section == "gates" and f.verdict in ("WARN", "FAIL")])
         # AU exempts patch releases from its extender rule.

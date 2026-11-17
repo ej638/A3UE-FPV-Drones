@@ -11,6 +11,7 @@ All notable changes to [A3UE] AI FPV Drones. Versions match the Steam Workshop i
   - Only KVN drones fly low, against soldiers on foot or parked vehicles at least 300 m away when the attack begins. Radio drones (Ukraine FPV, Crocus) would lose their link that low, so they attack as before.
   - When drones take turns on you, the next one may wait about 500 m out and come in low after the first strike.
 - **New setting: Low approach chance** (Addon Options → [A3UE] AI FPV Drones → Drone attacks): 0–100%, default 33%. 0% turns low approaches off.
+- **Antistasi Ultimate 12.4.2** is now on the tested list, so the server log no longer shows a version notice for it.
 - **Contact fuse.** During its attack, a drone now detonates when it touches anything: the ground, a tree, a wall, a soldier or a vehicle. Exactly one warhead fires, even when the drone pack has its own impact charge.
 
 ## 1.0.7
