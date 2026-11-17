@@ -37,7 +37,9 @@ if (!(_seed isEqualType 0) || {!finite _seed} || {_seed < 0}) then {_seed = -1;}
 	["A3UE_FPV_attackProfiles", true] call _flag,
 	["A3UE_FPV_outcomeIntents", true] call _flag,
 	["A3UE_FPV_fuseContactOnly", true] call _flag,
-	["A3UE_FPV_QA_forceProfile", ["", "DIRECT", "HIGH_DIVE", "FLANK"]] call _choice,
+	// LOW_RUN (EN-02) is forced like the others but still needs an eligible engagement.
+	// LOW_RUN_WING (LR-1c) forces it only for drones that waited their turn (the second drone on).
+	["A3UE_FPV_QA_forceProfile", ["", "DIRECT", "HIGH_DIVE", "FLANK", "LOW_RUN", "LOW_RUN_WING"]] call _choice,
 	["A3UE_FPV_QA_forceIntent", _intents] call _choice,
 	_seed,
 	// F4-2: missed-pass flip, tree/obstacle awareness, native transit floor.

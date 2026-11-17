@@ -1,6 +1,21 @@
 // Planning activation only. The controller requires a feasible checked corridor before handoff.
 params [["_uav",objNull],["_target",objNull],["_profile",createHashMap]];
 if (isNull _uav || {isNull _target}) exitWith {false};
+// LOW_RUN (EN-02, lowest line LL-1): a nominated low run hands off on its own gate instead of the
+// range budget and the clear-line rule: READY, at this drone's hand-off range or closer (350 m, or up
+// to 500 m for a high arrival: LR-1c), with a survey under 1.5 s old whose line starts within 40 m of
+// the drone. A survey never blocks, so READY always comes; lowRunTrack ends the run only if no survey
+// has come back by 250 m (LATE, a starved scheduler).
+private _lowStage = [_uav, _target] call A3UE_fnc_fpv_lowRunStage;
+if (_lowStage in ["CHECKING", "READY"]) exitWith {
+    private _lowRecord = _uav getVariable ["A3UE_FPV_lowRun", createHashMap];
+    private _lowResult = _lowRecord getOrDefault ["result", []];
+    private _uavPos = getPosASL _uav;
+    _lowStage == "READY" && {count _lowResult == 8}
+        && {time >= (_lowResult # 0)} && {time - (_lowResult # 0) < 1.5}
+        && {(_uavPos distance2D (getPosASL _target)) <= (_lowRecord getOrDefault ["handoffRun", (call A3UE_fnc_fpv_lowRunSettings) get "handoff"])}
+        && {(_uavPos distance2D (_lowResult # 1)) <= 40}
+};
 private _limits = [_profile] call A3UE_fnc_fpv_trajectoryLimits;
 private _speed = (vectorMagnitude (velocity _uav)) max (_limits # 0);
 private _height = abs ((getPosASL _uav # 2) - (getPosASL _target # 2));

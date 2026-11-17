@@ -75,10 +75,21 @@ if (_detonationReason == "GROUND_CONTACT") then {
 	_deliveryPosAsl = _uavPosAsl vectorAdd (_velocity vectorMultiply _touchdown);
 	_deliveryMode = "GROUND_POINT";
 };
+// Any-contact fuse (EN-02 design section 7.2): the warhead goes at the contact point the fuse's ray
+// found this instant, 0.2 m short of the surface along the drone's own velocity.
+if (_detonationReason == "SURFACE_CONTACT") then {
+	private _contact = _uav getVariable ["A3UE_FPV_lastSurfaceContactASL", []];
+	private _velocity = velocity _uav;
+	if (_contact isEqualType [] && {count _contact == 3} && {vectorMagnitude _velocity > 0.1}) then {
+		_deliveryPosAsl = _contact vectorDiff ((vectorNormalized _velocity) vectorMultiply 0.2);
+	};
+	_deliveryMode = "CONTACT_POINT";
+};
 private _impactSurfaceType = _uav getVariable ["A3UE_FPV_lastImpactSurfaceType", "none"];
 private _fallbackSurfaceModes = _surfaceFallbackModes;
 private _strikePathClass = switch (true) do {
 	case (_detonationReason == "GROUND_CONTACT"): {"GROUND_CONTACT"};
+	case (_detonationReason == "SURFACE_CONTACT"): {"SURFACE_CONTACT"};
 	case (_impactMode in _directHitModes): {"DIRECT_HIT"};
 	case (_impactMode in _fallbackSurfaceModes): {"FALLBACK_SURFACE"};
 	case (_impactMode == "AIR_PROXIMITY"): {"AIR_POLICY"};
@@ -87,7 +98,7 @@ private _strikePathClass = switch (true) do {
 };
 private _approvalPolicyClass = switch (true) do {
 	case (_detonationReason in ["DIRECT_CONTACT", "PREDICTED_IMPACT"]): {"DIRECT_HIT_PRIMARY"};
-	case (_detonationReason in ["CLOSURE_QUALIFIED", "OBSTRUCTION_FALLBACK", "GROUND_CONTACT"]): {"SURFACE_PRIMARY"};
+	case (_detonationReason in ["CLOSURE_QUALIFIED", "OBSTRUCTION_FALLBACK", "GROUND_CONTACT", "SURFACE_CONTACT"]): {"SURFACE_PRIMARY"};
 	case (_detonationReason in ["MISSED_PASS_FALLBACK", "PROXIMITY_FAILSAFE"]): {"EMERGENCY_FALLBACK"};
 	default {"UNCLASSIFIED"};
 };
@@ -95,6 +106,7 @@ private _policyDeliveryMode = switch (_strikePathClass) do {
 	case "DIRECT_HIT": {"IMPACT_POINT"};
 	case "FALLBACK_SURFACE": {"IMPACT_POINT"};
 	case "GROUND_CONTACT": {"GROUND_POINT"};
+	case "SURFACE_CONTACT": {"CONTACT_POINT"};
 	default {"UAV_POSITION"};
 };
 private _deliveryPolicyMatch = _deliveryMode == _policyDeliveryMode;

@@ -631,7 +631,8 @@ class F4AttackRunSource(unittest.TestCase):
         for removed in ['MISSED_PASS_FALLBACK', 'PROXIMITY_FAILSAFE', 'CLOSURE_QUALIFIED']:
             self.assertNotIn(removed, contact)
         commit = self.code('commitDetonation')
-        self.assertIn('"PROXIMITY_FAILSAFE", "GROUND_CONTACT"]', commit)
+        # EN-02 any-contact fuse adds SURFACE_CONTACT (EJ's product decision, 13 Nov 2026).
+        self.assertIn('"PROXIMITY_FAILSAFE", "GROUND_CONTACT", "SURFACE_CONTACT"]', commit)
         self.assertIn('[A3UE_FPV] attackPass id=%1 target=%2 outcome=%3 %4', commit)
         self.assertLess(commit.index('triggerAmmo _missile;'), commit.index('attackPass id='))
         self.assertLess(commit.index('_strike deleteAt "attackPass";'), commit.index('_recent pushBack _strike;'))

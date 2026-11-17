@@ -206,6 +206,37 @@ private _approved = false;
 // the target. There is no proximity rescue: a near miss flies past and becomes a missed pass.
 private _attackSettings = call A3UE_fnc_fpv_attackSettings;
 private _contactOnly = (_attackSettings # 0) && {_attackSettings # 6} && {!_isAirPolicyMode};
+// LOW_RUN (EN-02 design section 5.6, section 7.4): while the pass is low, the ground rule uses the sink rate
+// relative to the slope under the drone, and cover the drone has not reached does not fire the
+// fuse (from 1-4 m every bush on the line hides the target); any real contact still does.
+private _lowStage = [_uav, _target] call A3UE_fnc_fpv_lowRunStage;
+private _low = _lowStage in ["DESCEND", "SKIM", "SPRINT"];
+// Any-contact fuse (EN-02 design section 7.2, A3UE_FPV_contactFuseAny): while the controller flies the
+// attack, one short ray along the velocity covers the stretch the drone flies before its next
+// check (speed x 1.5 steps, at least 1 m). Anything solid on it (ground, object, any person or
+// vehicle; the sea surface plus its wave margin) is contact. The drone and its crew are skipped.
+private _surfaceContact = [];
+if (_contactOnly && {_mode == "TERMINAL_VECTOR"} && {_speedMps > 1}
+	&& {(call A3UE_fnc_fpv_lowRunSettings) getOrDefault ["contactAny", true]}) then {
+	private _steering = _uav getVariable ["A3UE_FPV_terminalSteeringState", []];
+	private _step = 0.02;
+	if (_steering isEqualType [] && {count _steering == 12} && {(_steering # 9) isEqualType 0} && {finite (_steering # 9)} && {(_steering # 9) > 0}) then {
+		_step = _steering # 9;
+	};
+	private _reach = ((_speedMps * 1.5 * ((_step max 0.01) min 0.1)) max 1) min 4;
+	private _from = getPosWorld _uav;
+	private _to = _from vectorAdd (_currentVelocity vectorMultiply (_reach / _speedMps));
+	private _crew = crew _uav;
+	private _hits = lineIntersectsSurfaces [_from, _to, _uav, objNull, true, 3, "GEOM", "NONE"];
+	private _index = _hits findIf {
+		private _object = _x param [3, objNull];
+		if (isNull _object) then {_object = _x param [2, objNull];};
+		isNull _object || {!(_object in _crew) && {(objectParent _object) isNotEqualTo _uav}}
+	};
+	if (_index >= 0) then {_surfaceContact = +((_hits # _index) # 0);};
+	if (_surfaceContact isEqualTo [] && {(getTerrainHeightASL [_to # 0, _to # 1]) < 0} && {(_to # 2) < 0.5}) then {_surfaceContact = +_to;};
+};
+_result set ["contactPointASL", _surfaceContact];
 
 if (_contactOnly) then {
 	private _sweptContact = false;
@@ -224,6 +255,17 @@ if (_contactOnly) then {
 	private _groundContact = false;
 	if ((_uavPosAsl distance2D _targetPosAsl) <= 15) then {
 		private _sinkRate = -(_currentVelocity # 2);
+		if (_low) then {
+			// Vertical speed minus horizontal speed times the slope ahead: a skim down a slope
+			// is not a dive into the ground.
+			private _flat = [_currentVelocity # 0, _currentVelocity # 1, 0];
+			private _flatSpeed = vectorMagnitude _flat;
+			if (_flatSpeed > 1) then {
+				private _ahead = _uavPosAsl vectorAdd (_flat vectorMultiply (2 / _flatSpeed));
+				private _slope = ((getTerrainHeightASL [_ahead # 0, _ahead # 1]) - (getTerrainHeightASL [_uavPosAsl # 0, _uavPosAsl # 1])) / 2;
+				_sinkRate = -((_currentVelocity # 2) - _flatSpeed * _slope);
+			};
+		};
 		_groundContact = _altitudeAGL <= 0.6 || {_sinkRate > 0.5 && {(((_altitudeAGL - 0.35) max 0) / _sinkRate) <= _predictedImpactWindow}};
 	};
 	switch (true) do {
@@ -235,7 +277,7 @@ if (_contactOnly) then {
 			_approved = true;
 			_detonationReason = "PREDICTED_IMPACT";
 		};
-		case ((_impactMode == "OBSTRUCTION_SURFACE") && {_fallbackSurfaceQualified}): {
+		case ((_impactMode == "OBSTRUCTION_SURFACE") && {!_low} && {_fallbackSurfaceQualified}): {
 			_approved = true;
 			_detonationReason = "OBSTRUCTION_FALLBACK";
 			_fallbackReason = "TARGET_DUCKED_BEHIND_OBSTRUCTION";
@@ -243,6 +285,10 @@ if (_contactOnly) then {
 		case (_groundContact): {
 			_approved = true;
 			_detonationReason = "GROUND_CONTACT";
+		};
+		case (_surfaceContact isNotEqualTo []): {
+			_approved = true;
+			_detonationReason = "SURFACE_CONTACT";
 		};
 	};
 } else {

@@ -104,12 +104,17 @@ if (_holderIndex >= 0) then {
 	};
 } else {
 	// Waiting: take the slot of a cleared drone that is still far out and much farther than this one.
+	// LR-1c: not from a low run, which is far out on purpose (its surveys start up to 600 m out, and
+	// a drone that waited on the outer ring is cleared there).
 	if (count _holders >= _limit) then {
 		private _range = _uav distance _target;
 		private _swap = _holders findIf {
 			private _other = _x # 0;
+			private _waiter = _other getVariable ["A3UE_FPV_lowWaiter", []];
 			(_other getVariable ["A3UE_FPV_mode", ""]) == "TRACKING" && {(_other distance _target) > 250}
 				&& {(_other distance _target) > _range + 150}
+				&& {!((_waiter param [1, false]) && {((_waiter param [0, []]) param [1, ""]) == _key})}
+				&& {!(([_other, _target] call A3UE_fnc_fpv_lowRunStage) in ["CHECKING", "READY"])}
 		};
 		if (_swap >= 0) then {
 			private _other = (_holders # _swap) # 0;

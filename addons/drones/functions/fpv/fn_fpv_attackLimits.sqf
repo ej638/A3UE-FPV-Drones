@@ -6,6 +6,22 @@
 // [uav, target, controllerIdentity, profile, limits] -> limits
 params [["_uav", objNull], ["_target", objNull], ["_controllerIdentity", []], ["_profile", createHashMap], ["_limits", []]];
 if (!(_limits isEqualType []) || {count _limits != 10} || {isNull _uav} || {isNull _target}) exitWith {_limits};
+// LOW_RUN (EN-02 design section 5.4): skimming, the cruise limit is the sampled skim speed (15-20 m/s).
+// Gliding down (LR-1b), it is the fastest speed from which 70% of the family's deceleration still
+// brakes to the skim speed by the bottom of the glide: attack speed high up, the skim speed low
+// down. Every other limit stays the family's own; the sprint and every other phase keep the
+// attack-run envelope.
+private _lowStage = [_uav, _target] call A3UE_fnc_fpv_lowRunStage;
+if (_lowStage in ["DESCEND", "SKIM"]) exitWith {
+	private _low = _uav getVariable ["A3UE_FPV_lowRun", createHashMap];
+	private _cruise = (_low getOrDefault ["skim", _limits # 0]) max 4;
+	if (_lowStage == "DESCEND") then {
+		_cruise = sqrt ((_cruise ^ 2) + 1.4 * (_limits # 2) * ((_low getOrDefault ["descentLeft", 0]) max 0));
+	};
+	private _result = +_limits;
+	_result set [0, (_limits # 0) min _cruise];
+	_result
+};
 private _record = _uav getVariable ["A3UE_FPV_attackReversal", createHashMap];
 if (!(_record isEqualType createHashMap) || {!((_record getOrDefault ["phase", ""]) in ["PULL", "OVER", "DIVE"])}) exitWith {_limits};
 private _settings = call A3UE_fnc_fpv_attackSettings;

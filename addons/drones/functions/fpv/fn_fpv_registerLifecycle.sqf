@@ -50,7 +50,9 @@ _uav addEventHandler ["Deleted", {
     private _id = _vehicle getVariable ["A3UE_FPV_lifecycleIdServer", -1];
     // F4-2b evidence: UA's native hit handler detonates and deletes the airframe, so a managed
     // UA lost that way (tree, shot down, a nearby drone's blast) never reaches MPKilled.
-    if (_vehicle getVariable ["UA_FPV_Detonated", false]) then {
+    // EN-02: our own committed strike may have set that flag as its fence (contactFence); it is
+    // a strike, not a loss.
+    if ((_vehicle getVariable ["UA_FPV_Detonated", false]) && {!(_vehicle getVariable ["A3UE_FPV_detonationCommitted", false])}) then {
         [_vehicle, objNull, objNull, _id, "UA_HIT"] call A3UE_fnc_fpv_logDroneLoss;
     };
     // F5: a managed spawn's own crew and groups are swept once its airframe is gone.

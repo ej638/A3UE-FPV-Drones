@@ -31,6 +31,9 @@ isNil {
 			_this call (missionNamespace getVariable "A3UE_FPV_kvnNativeOnDestroy")
 		};
 		if (_uav getVariable ["A3UE_FPV_kvnDestroyHandled", false]) exitWith {};
+		// EN-02: our fuse fired first (contactFence) and its commit is the one warhead: no loss
+		// line, no destroy report, no native payload. A refused commit lifts the fence again.
+		if ((_uav getVariable ["A3UE_FPV_contactFence", []]) isNotEqualTo []) exitWith {};
 		_uav setVariable ["A3UE_FPV_kvnDestroyHandled", true];
 		// F4-2 evidence: KVN detonates and deletes the airframe on any hit, so a managed KVN
 		// lost that way never reaches MPKilled. Its config hit handler passes [unit, source,

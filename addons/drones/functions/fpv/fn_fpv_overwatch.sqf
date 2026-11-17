@@ -3,8 +3,10 @@
 // second, or sooner when the ring point has moved 40 m. Outside the ring it closes at tracking
 // speed; on the ring it loiters at ring speed. Height is the transit floor plus the drone's stagger.
 // The controller calls this from its unscheduled tick with its own identity.
-// [uav, target, profile, drone number, targetNetId, targetRevision] -> true when the order is current
-params [["_uav", objNull], ["_target", objNull], ["_profile", createHashMap], ["_index", 0], ["_targetNetId", ""], ["_targetRevision", -1]];
+// [uav, target, profile, drone number, targetNetId, targetRevision, ring] -> true when the order is current
+//   ring: the ring radius in metres; -1 = A3UE_FPV_overwatchRadius (LR-1c: a drone that will go low
+//   when cleared waits on the low run's outer ring)
+params [["_uav", objNull], ["_target", objNull], ["_profile", createHashMap], ["_index", 0], ["_targetNetId", ""], ["_targetRevision", -1], ["_ring", -1]];
 
 if !(call A3UE_fnc_fpv_helperAccess) exitWith {false};
 
@@ -23,7 +25,7 @@ private _targetVelocity = velocity _target;
 if (([_uavPos, _targetPos, _targetVelocity] findIf {count _x != 3 || {(_x findIf {!(_x isEqualType 0) || {!finite _x} || {abs _x > 1e6}}) >= 0}}) >= 0) exitWith {false};
 
 private _settings = call A3UE_fnc_fpv_wingSettings;
-private _point = [_uavPos, _targetPos, _targetVelocity, _settings # 4, _index] call A3UE_fnc_fpv_overwatchPoint;
+private _point = [_uavPos, _targetPos, _targetVelocity, [_settings # 4, _ring] select (_ring > 0), _index] call A3UE_fnc_fpv_overwatchPoint;
 
 private _trackingSpeed = [_profile, "trackingSpeed", 90] call A3UE_fnc_fpv_profileValue;
 if (!(_trackingSpeed isEqualType 0) || {_trackingSpeed <= 0}) then {

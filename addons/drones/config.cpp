@@ -174,6 +174,16 @@ class CfgFunctions {
             class fpv_obstacleProbe {};
             class fpv_transitHeight {};
             class fpv_attackClearLine {};
+            class fpv_lowRunSettings {};
+            class fpv_lowRunStage {};
+            class fpv_lowRunTrack {};
+            class fpv_lowRunCheck {};
+            class fpv_lowRunAim {};
+            class fpv_lowRunEnd {};
+            class fpv_lowRunWaiter {};
+            class fpv_lowRunLineAt {};
+            class fpv_surfaceZ {};
+            class fpv_contactFence {};
             class fpv_logDroneLoss {};
             class fpv_launchSlot {};
             class fpv_createUavCrew {};

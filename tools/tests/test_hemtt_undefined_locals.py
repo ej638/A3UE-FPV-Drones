@@ -20,6 +20,7 @@ ALLOWED = {
     # Controller tick and identity, set by the drone controller loop.
     ("fn_fpv_trajectoryLimits.sqf", "_fpvTick"),
     ("fn_fpv_attackSettings.sqf", "_fpvTick"),
+    ("fn_fpv_lowRunSettings.sqf", "_fpvTick"),
     ("fn_fpv_wingSettings.sqf", "_fpvTick"),
     ("fn_fpv_canActuate.sqf", "_fpvTick"),
     ("fn_fpv_resolveTarget.sqf", "_fpvTick"),

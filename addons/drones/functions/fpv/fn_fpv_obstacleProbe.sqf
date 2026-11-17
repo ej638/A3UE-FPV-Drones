@@ -2,9 +2,11 @@
 // asked and an object is hit, one ray straight down from above the hit for the obstacle's top.
 // Moving things (units, vehicles, other drones) are not static obstacles and are skipped.
 // Callers bound the rate (transit 2 Hz, dive lift 10 Hz, entry line 4 Hz, flip check once).
-// [uav, target or objNull, fromASL, toASL, ignoreTerrain, wantTop] -> [] when clear, else
+// LOW_RUN (EN-02 design section 5.9): a low drone asks for vehicles too (a parked car is in its way, not
+// under it); people are never obstacles here.
+// [uav, target or objNull, fromASL, toASL, ignoreTerrain, wantTop, vehicles] -> [] when clear, else
 // [hitASL, top z ASL, object (objNull = terrain), terrain z ASL under the hit]
-params [["_uav", objNull], ["_target", objNull], ["_from", []], ["_to", []], ["_ignoreTerrain", false], ["_wantTop", false]];
+params [["_uav", objNull], ["_target", objNull], ["_from", []], ["_to", []], ["_ignoreTerrain", false], ["_wantTop", false], ["_vehicles", false]];
 if (!(_from isEqualType []) || {!(_to isEqualType [])} || {count _from != 3} || {count _to != 3}
 	|| {(_from vectorDistance _to) < 0.1}) exitWith {[]};
 private _owner = {
@@ -16,7 +18,7 @@ private _owner = {
 private _hits = lineIntersectsSurfaces [_from, _to, _uav, _target, true, 4, "VIEW", "GEOM"];
 private _index = _hits findIf {
 	private _object = [_x] call _owner;
-	if (isNull _object) then {!_ignoreTerrain} else {!(_object isKindOf "AllVehicles")}
+	if (isNull _object) then {!_ignoreTerrain} else {!(_object isKindOf "AllVehicles") || {_vehicles && {!(_object isKindOf "Man")}}}
 };
 if (_index < 0) exitWith {[]};
 private _hit = _hits # _index;

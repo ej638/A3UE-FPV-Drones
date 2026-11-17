@@ -116,7 +116,12 @@ HELPERS=['profileValue','trajectoryLimits','planTrajectory','followTrajectory','
  'attackReversal','attackLimits','obstacleProbe','attackClearLine','transitHeight',
  'targetNavigation','prepareTrajectory','runTerminalVector','clearTarget','detonateCompat','commitDetonation','selectTarget',
  # LT-2: clearTarget and selectTarget call these.
- 'wingSettings','attackSlot','attackRelease','attackCrowd','overwatchPoint','scanTargets']
+ 'wingSettings','attackSlot','attackRelease','attackCrowd','overwatchPoint','scanTargets',
+ # EN-02 low run and any-contact fuse: the dive path, fuse and controller call these. Their engine
+ # world queries only run on a nominated low run; test_low_run substitutes them.
+ 'lowRunSettings','lowRunStage','lowRunTrack','lowRunCheck','lowRunAim','lowRunEnd','surfaceZ','contactFence',
+ # LR-1c: the overwatch branch asks whether a waiting drone will go low; LL-1: the line lookup.
+ 'lowRunWaiter','lowRunLineAt']
 
 def adapt_helper(name,s):
         if name=='runTerminalVector':

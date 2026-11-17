@@ -78,7 +78,7 @@ private _deliveryUp = _strike get "deliveryUp";
 if (vectorMagnitude _deliveryDir < 0.01 || {vectorMagnitude (_deliveryDir vectorCrossProduct _deliveryUp) < 0.01}) exitWith {["REJECTED", "POSE_DEGENERATE"] call _qaCommit};
 private _reason = _strike getOrDefault ["detonationReason", "NONE"];
 private _fallback = _strike getOrDefault ["fallbackReason", "NONE"];
-if !(_reason in ["DIRECT_CONTACT", "PREDICTED_IMPACT", "CLOSURE_QUALIFIED", "OBSTRUCTION_FALLBACK", "MISSED_PASS_FALLBACK", "PROXIMITY_FAILSAFE", "GROUND_CONTACT"]
+if !(_reason in ["DIRECT_CONTACT", "PREDICTED_IMPACT", "CLOSURE_QUALIFIED", "OBSTRUCTION_FALLBACK", "MISSED_PASS_FALLBACK", "PROXIMITY_FAILSAFE", "GROUND_CONTACT", "SURFACE_CONTACT"]
     && {_fallback in ["NONE", "AIR_TARGET_PROXIMITY_POLICY", "TARGET_DUCKED_BEHIND_OBSTRUCTION", "OVERSHOOT_IMMINENT", "GUIDANCE_QUALITY_DEGRADED", "IMPACT_WINDOW_COLLAPSED", "NO_VALID_IMPACT_POINT"]}) exitWith {["REJECTED", "REASON_POLICY"] call _qaCommit};
 
 // Derive the payload from actual class plus cached family/task eligibility.

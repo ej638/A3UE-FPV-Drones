@@ -31,6 +31,8 @@ if (count _pass == 0) exitWith {_navigation};
 private _now = time;
 // One evaluation per simulation instant: repeated calls within one tick agree exactly.
 if ((_pass get "memoAt") == _now && {(_pass get "memoKey") isEqualTo (_navigation # 0)}) exitWith {+(_pass get "memo")};
+// LOW_RUN (EN-02): while the pass is low, lowRunAim supplies the aim (below).
+private _low = ([_uav, _target] call A3UE_fnc_fpv_lowRunStage) in ["READY", "DESCEND", "SKIM", "SPRINT"];
 private _uavPos = getPosASL _uav;
 private _uavVelocity = velocity _uav;
 private _livePos = getPosASL _target;
@@ -53,9 +55,10 @@ if (_settings # 3) then {
 	_velocityEstimate = +(_pass get "sampleVel");
 };
 private _base = (_navigation # 3) vectorAdd _error;
-// With the contact fuse, a resolved ground solution is flown at rather than overflown.
+// With the contact fuse, a resolved ground solution is flown at rather than overflown. Not while
+// low: from 1-4 m the ground often hides the target, and the low run flies at the target itself.
 private _groundSolution = false;
-if ((_settings # 6) && {(_uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"]) == "GROUND_NEAR_TARGET"}
+if (!_low && {_settings # 6} && {(_uav getVariable ["A3UE_FPV_terminalImpactMode", "NONE"]) == "GROUND_NEAR_TARGET"}
 	&& {_uav getVariable ["A3UE_FPV_lastImpactValid", false]}
 	&& {(_uav getVariable ["A3UE_FPV_lastImpactTargetNetId", ""]) == netId _target}) then {
 	private _impact = _uav getVariable ["A3UE_FPV_lastImpactPointASL", []];
@@ -118,10 +121,23 @@ if (!_groundSolution) then {
 	};
 };
 private _aim = (_weave vectorMultiply _envelope) vectorAdd (_goal vectorMultiply (1 - _envelope));
+// LOW_RUN (EN-02, lowest line LL-1): the low aim (the surveyed line, the sideways weave within the
+// corridor, the same final blend); [] once the run has ended, then the dive aim above applies.
+if (_low) then {
+	private _lowAim = [_uav, _target, _controllerIdentity, _pass, _navigation, _base, _velocityEstimate, _timeToGo,
+		_offset # 0, _envelope, _goal] call A3UE_fnc_fpv_lowRunAim;
+	if (_lowAim isNotEqualTo []) then {
+		_aim = _lowAim # 0;
+		_velocityEstimate = _lowAim # 1;
+	};
+};
 // F4-2 obstacle lift: the pilot hops over a tree, building or crest in the dive path. A look
 // along the velocity (2.5 s, short of the target, 10 Hz) finds the first obstacle that is not
 // the target's own surroundings (objects within 12 m and the ground within 30 m of it stay with
 // the cover and fuse rules); the aim then goes 5 m over its top until the drone is past it.
+// While low (LL-1) it ignores the ground and counts vehicles, and leaves alone what the low run's
+// line already clears (the survey found it); anything else is hopped the same way, and the low
+// aim takes over again behind it.
 if (_settings # 11) then {
 	if (_now >= (_pass getOrDefault ["liftNextAt", -1]) || {_now < (_pass getOrDefault ["liftCheckedAt", -1])}) then {
 		_pass set ["liftCheckedAt", _now];
@@ -129,20 +145,24 @@ if (_settings # 11) then {
 		private _speed = vectorMagnitude _uavVelocity;
 		private _targetRange = _uavPos vectorDistance (_navigation # 5);
 		private _look = ((_speed * 2.5) min (_targetRange - 10)) min 80;
+		private _lowNow = ([_uav, _target] call A3UE_fnc_fpv_lowRunStage) in ["DESCEND", "SKIM", "SPRINT"];
 		if (_speed > 5 && {_look > 8} && {_targetRange > 25}) then {
 			private _dir = _uavVelocity vectorMultiply (1 / _speed);
-			private _found = [_uav, _target, _uavPos, _uavPos vectorAdd (_dir vectorMultiply _look), false, true] call A3UE_fnc_fpv_obstacleProbe;
+			private _found = [_uav, _target, _uavPos, _uavPos vectorAdd (_dir vectorMultiply _look), _lowNow, true, _lowNow] call A3UE_fnc_fpv_obstacleProbe;
 			if (_found isNotEqualTo []) then {
 				private _hitPos = _found # 0;
 				if (((_hitPos distance2D (_navigation # 5)) > ([12, 30] select (isNull (_found # 2))))
 					&& {(_uavPos vectorDistance _hitPos) < (_targetRange - 8)}) then {
-					private _flatDir = [_dir # 0, _dir # 1, 0];
-					if (vectorMagnitude _flatDir > 0.01) then {_flatDir = vectorNormalized _flatDir;};
-					private _lift = _hitPos vectorAdd (_flatDir vectorMultiply 6);
-					_lift set [2, (_found # 1) + 5];
-					if ((_pass getOrDefault ["lift", []]) isEqualTo []) then {_pass set ["lifts", (_pass getOrDefault ["lifts", 0]) + 1];};
-					_pass set ["lift", _lift];
-					_pass set ["liftUntil", _now + 3];
+					private _line = if (_lowNow) then {[_uav, _hitPos] call A3UE_fnc_fpv_lowRunLineAt} else {[]};
+					if (count _line != 4 || {(_found # 1) > (_line # 0) - 0.3}) then {
+						private _flatDir = [_dir # 0, _dir # 1, 0];
+						if (vectorMagnitude _flatDir > 0.01) then {_flatDir = vectorNormalized _flatDir;};
+						private _lift = _hitPos vectorAdd (_flatDir vectorMultiply 6);
+						_lift set [2, (_found # 1) + 5];
+						if ((_pass getOrDefault ["lift", []]) isEqualTo []) then {_pass set ["lifts", (_pass getOrDefault ["lifts", 0]) + 1];};
+						_pass set ["lift", _lift];
+						_pass set ["liftUntil", _now + 3];
+					};
 				};
 			};
 		};

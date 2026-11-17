@@ -138,6 +138,23 @@ private _closest=["closest",40] call _drone;
 ''')
         self.assertRegex(out, r'event=SWAP id=near')
 
+    def test_a_low_run_far_out_keeps_its_slot(self):
+        out = self.sqf(DRONES + '''
+// LR-1c: a low run is far out on purpose (checks from up to 600 m; a drone that waited on the
+// 500 m ring is cleared there): a much closer waiting drone does not take its slot.
+private _far=["far",600] call _drone; private _near=["near",200] call _drone;
+_far setVariable ["A3UE_FPV_lowWaiter",[[[1,2,1,1],"target",0],true]];
+[(_far call _slot) # 0=="ATTACK","first to see the target"] call _assert;
+[(_near call _slot) # 0=="WAIT","a nominated low run keeps its slot"] call _assert;
+// A nomination for another target does not count; a low run being checked does.
+_far setVariable ["A3UE_FPV_lowWaiter",[[[1,2,1,1],"other",0],true]];
+_far setVariable ["A3UE_FPV_lowRun",createHashMapFromArray [["key",[[],"target",0]],["stage","CHECKING"],["logged",false]]];
+[(_near call _slot) # 0=="WAIT","a low run being checked keeps its slot"] call _assert;
+_far setVariable ["A3UE_FPV_lowRun",createHashMap];
+[(_near call _slot) isEqualTo ["ATTACK",0,1],"otherwise the closer drone takes it, as before"] call _assert;
+''')
+        self.assertEqual(out.count('event=SWAP'), 1)
+
     def test_cleared_drone_that_never_dives_gives_way_and_stands_back(self):
         out = self.sqf(DRONES + '''
 private _d1=["d1",150] call _drone; private _d2=["d2",300] call _drone;
@@ -835,7 +852,10 @@ class WingSource(unittest.TestCase):
             'trajectorySteering', 'stepTerminalSteering', 'terminalPresentationUp', 'trajectoryLimits', 'attackLimits',
             'attackSettings', 'attackPass', 'attackPassSummary', 'attackAimOffset', 'attackNavigation', 'attackReversal',
             'targetNavigation', 'resolveImpactPoint', 'emptyImpactSolution', 'shouldDetonateNow', 'evaluateImpactWindow',
-            'detonateCompat', 'getClassDescriptor', 'sendLifecycle', 'controllerSleep', 'profileValue'}
+            'detonateCompat', 'getClassDescriptor', 'sendLifecycle', 'controllerSleep', 'profileValue',
+            # EN-02 low run and any-contact fuse.
+            'lowRunSettings', 'lowRunStage', 'lowRunTrack', 'lowRunCheck', 'lowRunAim', 'lowRunEnd', 'surfaceZ', 'contactFence',
+            'lowRunWaiter', 'lowRunLineAt'}
         for name in sorted(names):
             s = re.sub(r'//[^\n]*', '', source(name))
             self.assertNotRegex(s, r'\b(sleep|uiSleep|waitUntil|execVM)\b', name)

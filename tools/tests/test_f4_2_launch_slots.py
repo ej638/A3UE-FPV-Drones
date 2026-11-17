@@ -149,7 +149,8 @@ class LaunchSlotSource(unittest.TestCase):
         self.assertIn('if (isServer && {_uav getVariable ["A3UE_FPV_managed", false]}) then {', wrapper)
         # UA detonates and deletes natively too: the lifecycle's Deleted handler logs it first.
         deleted = self.code('registerLifecycle').split('"Deleted"', 1)[1].split('"MPKilled"', 1)[0]
-        self.assertIn('if (_vehicle getVariable ["UA_FPV_Detonated", false]) then {', deleted)
+        # EN-02: our own committed strike may have set UA's flag as its fence; it is not a loss.
+        self.assertIn('if ((_vehicle getVariable ["UA_FPV_Detonated", false]) && {!(_vehicle getVariable ["A3UE_FPV_detonationCommitted", false])}) then {', deleted)
         self.assertLess(deleted.index('"UA_HIT"] call A3UE_fnc_fpv_logDroneLoss;'), deleted.index('[_id, "delete"] call A3UE_fnc_fpv_endLifecycle;'))
         loss_code = self.code('logDroneLoss')
         self.assertIn('via=%14', loss_code)

@@ -336,6 +336,14 @@ private _managedDrones = (allUnitsUAV select { _x getVariable ["A3UE_FPV_managed
 		["lastFallbackReason", _x getVariable ["A3UE_FPV_lastFallbackReason", ""]],
 		["lastImpactTelemetryAt", _x getVariable ["A3UE_FPV_lastImpactTelemetryAt", -1]],
 		["lastTerminalVectorDistance", _x getVariable ["A3UE_FPV_lastTerminalVectorDistance", -1]],
+		// EN-02 low run (owner-local record): [stage, reason, skim clearance m, surveys so far].
+		["lowRun", call {
+			private _lowRecord = _x getVariable ["A3UE_FPV_lowRun", createHashMap];
+			if (_lowRecord isEqualType createHashMap && {count _lowRecord > 0}) then {
+				[_lowRecord getOrDefault ["stage", ""], _lowRecord getOrDefault ["reason", ""], _lowRecord getOrDefault ["height", -1],
+					_lowRecord getOrDefault ["surveys", 0]]
+			} else {[]}
+		}],
 		["controllerRunning", _x getVariable ["A3UE_FPV_controllerRunning", false]],
 		["controllerOwnerId", _x getVariable ["A3UE_FPV_controllerOwnerId", -1]],
 		["currentOwnerId", owner _x],

@@ -328,7 +328,9 @@ private _evaluateFuse = {
             && {(_uav getVariable ["A3UE_FPV_targetRevision",0]) == _targetRevision}
             && {!isNull _target} && {(_uav getVariable ["A3UE_FPV_targetNetId",""]) == netId _target}
             && {([_uav] call A3UE_fnc_fpv_resolveTarget) isEqualTo _target}
-            && {!((_uav getVariable ["A3UE_FPV_linkModel","RADIO"]) == "RADIO" && {(_uav getVariable ["A3UE_FPV_linkState","OK"]) == "EW_DENIED"})}) then {
+            && {!((_uav getVariable ["A3UE_FPV_linkModel","RADIO"]) == "RADIO" && {(_uav getVariable ["A3UE_FPV_linkState","OK"]) == "EW_DENIED"})}
+            // EN-02: the pack's own handler already fired (collision): never a second warhead.
+            && {!([_uav, "NATIVE"] call A3UE_fnc_fpv_contactFence)}) then {
             _approved = [_uav, _target, _profile] call A3UE_fnc_fpv_shouldDetonateNow;
         };
     };
@@ -558,6 +560,8 @@ if (_running) then {
 	private _sleepTime = 0.05;
 	private _linkState = _uav getVariable ["A3UE_FPV_cachedLinkState", _uav getVariable ["A3UE_FPV_linkState", "OK"]];
 	private _target = objNull;
+	// EN-02: a fence whose commit never came (a remote owner) gives the native backstop back.
+	if ((_uav getVariable ["A3UE_FPV_contactFence", []]) isNotEqualTo []) then {[_uav, "TICK"] call A3UE_fnc_fpv_contactFence;};
 
     private _externalControl = [_uav] call A3UE_fnc_fpv_isExternallyControlled;
     if (_externalControl != (_uav getVariable ["A3UE_FPV_reportedControl", false])) then {
@@ -707,8 +711,11 @@ if (_running) then {
                             private _retargeted = false;
                             if (_role == "OVERWATCH") then {
                                 _wingHot = false;
+                                // LL-1: a low run not yet handed off keeps its run while it waits, and surveys again when cleared.
                                 // Its place on the ring comes from its own lifecycle number, so it keeps it while the queue moves.
-                                [_uav, _target, _profile, _controllerIdentity # 0, netId _target, _guidanceRevision] call A3UE_fnc_fpv_overwatch;
+                                // LR-1c: a drone that will go low when cleared waits on the low run's outer ring.
+                                private _ring = [-1, (call A3UE_fnc_fpv_lowRunSettings) get "waitRing"] select ([_uav, _target, _controllerIdentity] call A3UE_fnc_fpv_lowRunWaiter);
+                                [_uav, _target, _profile, _controllerIdentity # 0, netId _target, _guidanceRevision, _ring] call A3UE_fnc_fpv_overwatch;
                                 if ((_wing # 5) && {_now >= _nextRetargetTick}) then {
                                     _nextRetargetTick = _now + 5;
                                     _retargeted = [_target, _guidanceRevision] call _retarget;
@@ -716,6 +723,8 @@ if (_running) then {
                             } else {
                             // F4-1: sample this engagement's approach profile before the entry gate.
                             [_uav,_target,_controllerIdentity,true] call A3UE_fnc_fpv_attackEngagement;
+                            // EN-02 (LL-1): a nominated low run surveys its path (bounded work); it never declines.
+                            [_uav,_target,_controllerIdentity] call A3UE_fnc_fpv_lowRunTrack;
                             if ([_uav,_target,_profile] call A3UE_fnc_fpv_shouldEnterTerminal) then {
                                 _entered = [_target] call _attemptIngress;
                             };
@@ -800,6 +809,8 @@ if (_running) then {
                                     _missedPass = false;
                                     diag_log format ["[A3UE_FPV] attackPass id=%1 target=%2 outcome=MISSED %3 nowM=%4 next=FLIP",
                                         netId _uav, netId _target, _flip # 1, round _currentDistance];
+                                    // EN-02: the return pass after a flip is a normal pass, never low.
+                                    [_uav, _target, "", "MISSED_FLIP"] call A3UE_fnc_fpv_lowRunEnd;
                                 };
                                 case "PULL": {_missedPass = false;};
                                 case "OVER": {_missedPass = false;};
@@ -815,6 +826,7 @@ if (_running) then {
 							if (_missedPass) then {
                                 // F4-1: a genuine miss flies past (no proximity rescue) and is logged once.
                                 private _attackSummary = [_uav,_target] call A3UE_fnc_fpv_attackPassSummary;
+                                [_uav, _target, "", "MISSED"] call A3UE_fnc_fpv_lowRunEnd;
                                 [_target,"TERMINAL_VECTOR",_guidanceRevision,_enteredAt] call _loseTarget;
                                 if ((_uav getVariable ["A3UE_FPV_mode",""]) == "LOST_TARGET") then {
                                     if ((_flip # 0) == "ABORT") then {
@@ -873,7 +885,15 @@ if (_running) then {
                                 };
 
 								if ([_target,_guidanceRevision] call _evaluateFuse) then {
+                                    // EN-02: fence the pack's own explode handler until the server commits.
+                                    [_uav, "SET"] call A3UE_fnc_fpv_contactFence;
 									[_target,_guidanceRevision] call _tryStrike;
+                                    if (_uav getVariable ["A3UE_FPV_detonating", false]) then {
+                                        [_uav, _target, "", _uav getVariable ["A3UE_FPV_lastDetonationReason", "STRIKE"]] call A3UE_fnc_fpv_lowRunEnd;
+                                    } else {
+                                        // On the server the commit is synchronous: refused or not sent, the native backstop is back.
+                                        if (clientOwner == 2) then {[_uav, "RELEASE"] call A3UE_fnc_fpv_contactFence;};
+                                    };
 								} else {
 									_nextGuidanceTick = _now + 0.01;
 								};
@@ -891,6 +911,8 @@ if (_running) then {
 		};
 	};
 
+	// EN-02: a low run whose engagement is over (control taken, target changed or lost) ends with its line.
+	[_uav, objNull, "SWEEP", ["", "CONTROL"] select _externalControl] call A3UE_fnc_fpv_lowRunEnd;
 	// Ignore inactive scans/radio; keep *due* active work and sample after this pass.
 	private _activeMode = _uav getVariable ["A3UE_FPV_mode", "IDLE"];
 	if (_activeMode != "TRACKING") then {call _clearTrackingOrderContext;};
@@ -927,6 +949,7 @@ isNil {
 
 		// LT-2: a stopped controller leaves the attack board (its attack has ended).
 		[_uav, "STOPPED"] call A3UE_fnc_fpv_attackRelease;
+		[_uav, objNull, "SWEEP", "STOPPED"] call A3UE_fnc_fpv_lowRunEnd;
 		_uav setVariable ["A3UE_FPV_controllerRunning", false];
 		call _clearTrackingOrderContext;
 		call _clearTerminalPoseContext;

@@ -16,5 +16,7 @@ private _evaluation = [_uav, _target, _profile] call A3UE_fnc_fpv_evaluateImpact
 	["A3UE_FPV_lastDetonationReason", "detonationReason", "NONE"],
 	["A3UE_FPV_lastFallbackReason", "fallbackReason", "NONE"]
 ];
+// Any-contact fuse (EN-02): where the contact ray met the surface, for the warhead (owner-local).
+_uav setVariable ["A3UE_FPV_lastSurfaceContactASL", _evaluation getOrDefault ["contactPointASL", []]];
 
 _evaluation getOrDefault ["approved", false]
