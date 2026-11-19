@@ -6,7 +6,7 @@ prefix = "fpv_ai"
 [version]
 major = 1
 minor = 0
-patch = 8
+patch = 9
 git_hash = 0
 
 [files]

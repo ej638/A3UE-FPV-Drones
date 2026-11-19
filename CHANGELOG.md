@@ -2,6 +2,18 @@
 
 All notable changes to [A3UE] AI FPV Drones. Versions match the Steam Workshop item.
 
+## 1.0.9
+
+- **Your own FPV drone swarm.** The rebel commander can call in a swarm of friendly FPV drones from AU's Supports menu, next to the bomb runs and supply drops.
+  - It costs 1 support point and 500 money. No airport is needed.
+  - Click the centre of a 300 m circle on the map and launch. Seven drones (3–8, a setting) launch behind the commander and fly in overhead.
+  - Each drone takes its own enemy in the circle: static guns and machine gunners first, then infantry. When there are vehicles or boats, anti-tank drones come along and go for armour first.
+  - Enemies under cover are taken once nothing in the open is left. Men on the stairs of a patrol tower are the last resort, after 10 s with nothing else to hit.
+  - No drone dives at a target with a civilian or one of your own within 15 m.
+  - After a minute with nothing left to hit, the swarm leaves. One swarm at a time; AU's support cooldown holds until the swarm is on station.
+  - The server flies the swarm. Players can't take its drones over with a UAV terminal.
+- **New settings** in a new **Friendly supports** section (Addon Options → [A3UE] AI FPV Drones): **FPV drone swarm (commander)**, on by default, and **FPV swarm size**, 3–8, default 7.
+
 ## 1.0.8
 
 - **Low approach for fiber-optic drones.** About one KVN attack in three now comes in low instead of from above.

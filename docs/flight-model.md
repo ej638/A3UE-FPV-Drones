@@ -198,6 +198,21 @@ After a genuine close miss (closest approach within about 8 m, no contact, paylo
 
 See [Drone packs](drone-packs.md).
 
+## The friendly swarm
+
+The rebels' FPV swarm (1.0.9, called by the commander) has its own, simpler flight. It is built to be decisive rather than to imitate a lone pilot hunting a player.
+
+- **Who flies.** The server flies each swarm drone itself on the way in, in each run-in and in the dive. Arma's AI only flies the loiter ring over the circle and the way out.
+- **The way in.** The drones launch 600–750 m out, behind the commander, each in its own lane and at its own height and speed: a lead group, then the last third about 14 s later. They stay at least 25 m above the ground. A look-ahead ray along the next 2 s of the path makes a drone climb hard over a mast, a tower or a hillside.
+- **Turns.** Level turns only, never a loop. The turn rate builds and eases out, and a drone brakes before a sharp turn.
+- **The run-in.** A drone with a target flies straight at it at its own height. There are no passes and no line-of-sight checks: cover on the dive line takes the blast.
+- **When it dives.** The drone pushes over when the target is 40° or more below the horizon (about 80 m out from 70 m up) and within 30° of the way it is flying. A target almost straight below (65° or more) is dived on at once unless it is behind the drone. For a target behind, the drone always turns round first.
+- **The dive.** The drone chases the target's aim point, with no weave and no planned misses. The push-over builds: the turn rate grows from 30°/s, and the speed builds with gravity to the family's dive speed.
+- **Fuse.** The same any-contact fuse as the enemy drones, and one warhead through the server.
+- **Taking turns.** Dives at the same target, or at targets within 25 m of each other, start at least 3 s apart, so the next drone sees what the last one did.
+- **After a miss.** If the target is still there, the drone comes back for it once. A soldier or gun dived on twice and still there is left alone for 10 minutes.
+- **Safety.** A dive breaks off when a civilian or one of the rebels' own is within 15 m of the target. This is checked when the target is chosen, at the push-over and once a second in the dive.
+
 ## Tuning status
 
 The dive speeds, intent weights, weave sizes, overwatch distances and low-approach heights are tuned by eye in real games. They may change between versions. See [Tuning (advanced)](architecture.md#tuning-advanced) for the values a server can change.

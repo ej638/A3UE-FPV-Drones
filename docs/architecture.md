@@ -14,6 +14,7 @@ The mod is one SQF addon (`fpv_ai_drones.pbo`) with no hard dependency on any dr
 - **Attack:** the controller lets Arma's AI fly the drone while it searches and approaches. It takes over steering for the attack run and dive.
 - **Strike:** it fires exactly one warhead when the drone actually reaches its target.
 - **Shared parts:** the same managed drone is reused for site defence, the FPV enemy support and the Rivals drone attack.
+- **The rebels' swarm (1.0.9):** the rebel commander can call in a swarm of friendly drones from AU's Supports menu. The server flies those with the swarm's own, simpler logic (see the [flight model](flight-model.md#the-friendly-swarm)).
 
 ## Building blocks
 
@@ -27,6 +28,9 @@ flowchart LR
     CAT --> SUP
     SITES --> SPAWN[Spawner and bootstrap]
     SUP --> SPAWN
+    AU -->|commander menu| SWM[Friendly swarm<br/>server]
+    CAT --> SWM
+    SWM --> SPAWN
     SPAWN --> CTRL[Controller<br/>per drone]
     DIR[Frame director<br/>per machine] --> CTRL
     BOARD[Attack board<br/>per machine] <--> CTRL
@@ -48,6 +52,7 @@ flowchart LR
 | **Payload and settlement** | On the server: creates the one warhead, credits the kill and settles the drone's lifecycle, stock and AU accounting exactly once | `commitDetonation`, `endLifecycle`, `consumePool` |
 | **Pack adapters** | Small, targeted wrappers around each drone pack's own scripts (warheads, fiber cable, radio signal, targetability) | `install*Adapter` |
 | **Supports and Rivals** | Adds the FPV strike to AU's Occupant and Invader supports and swaps the Rivals drone event for a real FPV | `patchSupportRegistries`, `SUP_FPV`, `installRivalsHooks` |
+| **Friendly swarm** | The rebels' FPV swarm (1.0.9). Five thin wrappers add it to AU's commander menu. The server checks and charges each call, launches the drones behind the commander, gives each its own target in the circle and flies them in and down itself (see [Antistasi integration](antistasi-integration.md#the-rebels-support-the-fpv-drone-swarm)) | `swarmCall`, `swarmRequest`, `swarmBrain`, `swarmAssign`, `swarmTick`, `swarmDive` |
 
 ## A drone's life
 
@@ -118,6 +123,7 @@ The mod is designed for a busy AU server at about 30 FPS, where AU itself alread
   - The radio link check reuses the relays it found for 10 s.
 - **Spawn-time work is bounded**: a fixed number of candidate points, line-of-sight tests and water checks.
 - **Network:** link state is sent on change. Coordination data (the attack board and scan caches) is never broadcast.
+- **The friendly swarm** is flown by the server. One brain pass every 1.5 s does the target search for the whole swarm. Measured hosted with 7 drones: a cruise step costs 0.11–0.13 ms and a dive step 0.11–0.19 ms on average.
 
 Measured on a dedicated server with about 20 drones and AU's full site load (one player):
 - server FPS stayed at 45–47;
@@ -146,6 +152,7 @@ All lines go to the RPT log of the machine that runs the code (the server for al
 | `attackPass` | One line per dive: approach profile, intended outcome, closest distance, result and step timing |
 | `director` | Every 60 s while drones fly: frame cost, budget overruns and scheduler lag |
 | `droneLost` | A drone was shot down or destroyed, and by what |
+| `swarm` | The friendly swarm: each call from the menu (`MENU_CALL`, with why a call was refused), launches, target reservations, dives, strikes, and a summary when the swarm ends |
 
 From the debug console, `copyToClipboard str (call A3UE_fnc_fpv_debugSnapshot)` copies the live state: registry, sites, supports and drones. Setting `A3UE_FPV_debug = true` on the server adds verbose logging. Don't leave it on for performance tests.
 
@@ -161,7 +168,8 @@ The player-facing settings are CBA settings, listed in the [README](../README.md
   - refill: on every stock use;
   - FPV strikes and their war level: `fn_fpv_supportAllowed`, which every FPV support request passes and which the attack-wave override asks before offering FPV;
   - Rivals: the Rivals availability check;
-  - low approach chance (1.0.8): read and validated with the other low-approach values in `fn_fpv_lowRunSettings`, where each attack draws its approach (`fn_fpv_attackEngagement`).
+  - low approach chance (1.0.8): read and validated with the other low-approach values in `fn_fpv_lowRunSettings`, where each attack draws its approach (`fn_fpv_attackEngagement`);
+  - FPV drone swarm (1.0.9): where the commander menu builds its list, and again on the server when a swarm is called (`fn_fpv_swarmCall`); the swarm size in `fn_fpv_swarmSettings`, read for each new swarm.
 - **Logging:** the server logs `[A3UE_FPV] setting <name>=<value>` at start-up and on every change.
 
 ## Tuning (advanced)
