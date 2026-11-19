@@ -1,7 +1,7 @@
 // 1.0.9 friendly FPV swarm: the server's entry point. Design: docs/internal/FPV_Friendly_Swarm_Design_20261116.md.
-// SW-1 accepts only calls from the server itself (the QA command on a hosted game, which the debug
-// console may deliver as a remote call from owner 2, or a server script). SW-2 adds the commander's
-// paid request from AU's Supports menu, checked by sender and charged here.
+// Accepts calls from the server itself (the QA command on a hosted game, which the debug console may
+// deliver as a remote call from owner 2, or a server script) and, since SW-2, the commander's paid
+// call from AU's Supports menu, which swarmCall checks by sender and charges before calling this.
 // - One swarm at a time, claimed in this unscheduled call.
 // - Drone mix (EJ, 17 November): anti-tank drones only for crewed enemy vehicles in the circle at the
 //   call (boats too since SW-1m), at most "maxAT" (all of them with armour, SW-1j); with none, the whole
@@ -10,7 +10,8 @@
 //   of the nearest rebel-held place without one.
 // [centre position, size (default: the setting), requester (optional: the unit calling it)] -> [true, swarm id] or [false, reason]
 params [["_center", []], ["_size", -1], ["_requester", objNull]];
-if (!isServer || {isRemoteExecutedJIP} || {isRemoteExecuted && {remoteExecutedOwner != 2}}) exitWith {[false, "AUTHORITY"]};
+if (!isServer || {isRemoteExecutedJIP} || {isRemoteExecuted && {remoteExecutedOwner != 2}
+	&& {!(localNamespace getVariable ["A3UE_FPV_swarmCallTrusted", false])}}) exitWith {[false, "AUTHORITY"]};
 if !(_center isEqualType [] && {count _center >= 2}) exitWith {[false, "POSITION"]};
 if (((_center select [0, 2]) findIf {!(_x isEqualType 0) || {!finite _x}}) >= 0) exitWith {[false, "POSITION"]};
 _center = [_center # 0, _center # 1, 0];

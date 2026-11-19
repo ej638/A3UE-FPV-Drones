@@ -9,6 +9,8 @@ if (isNil "CBA_fnc_addSetting") exitWith {false};
 private _category = localize "STR_A3UE_FPV_SET_CATEGORY";
 private _sites = [_category, localize "STR_A3UE_FPV_SET_SUB_SITES"];
 private _supports = [_category, localize "STR_A3UE_FPV_SET_SUB_SUPPORTS"];
+// 1.0.9: the rebels' own supports (EJ after session SW2: not under the enemy supports).
+private _friendly = [_category, localize "STR_A3UE_FPV_SET_SUB_FRIENDLY"];
 private _attacks = [_category, localize "STR_A3UE_FPV_SET_SUB_ATTACKS"];
 private _diagnostics = [_category, localize "STR_A3UE_FPV_SET_SUB_DIAGNOSTICS"];
 private _text = {[localize format ["STR_A3UE_FPV_SET_%1", _this], localize format ["STR_A3UE_FPV_SET_%1_TIP", _this]]};
@@ -50,6 +52,17 @@ private _text = {[localize format ["STR_A3UE_FPV_SET_%1", _this], localize forma
 [
 	"A3UE_FPV_rivalsEnabled", "CHECKBOX", "RIVALS" call _text, _supports, true,
 	1, {if (isServer) then {diag_log format ["[A3UE_FPV] setting rivalsEnabled=%1", _this];};}
+] call CBA_fnc_addSetting;
+
+// 1.0.9: the friendly FPV drone swarm in the commander's Supports menu, and its size.
+[
+	"A3UE_FPV_swarmEnabled", "CHECKBOX", "SWARM" call _text, _friendly, true,
+	1, {if (isServer) then {diag_log format ["[A3UE_FPV] setting swarmEnabled=%1", _this];};}
+] call CBA_fnc_addSetting;
+
+[
+	"A3UE_FPV_swarmSize", "SLIDER", "SWARMSIZE" call _text, _friendly, [3, 8, 7, 0],
+	1, {if (isServer) then {diag_log format ["[A3UE_FPV] setting swarmSize=%1", _this];};}
 ] call CBA_fnc_addSetting;
 
 // 1.0.8: the share of eligible fiber-drone attacks that come in low (LOW_RUN), shown as a

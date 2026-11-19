@@ -28,6 +28,11 @@ Enemy sites launch drones that fly out on their own, find a target and dive on i
   - KVN fiber-optic drones trail their cable.
   - Radio drones (Ukraine FPV, Crocus) respect jammers and relays.
 - **Player and Zeus control.** If a player or Zeus takes over a drone, its autopilot stops; when they let go, it carries on from where the drone actually is.
+- **Your own FPV swarm.** The rebel commander can call in an FPV drone swarm from AU's Supports menu, like a bomb run.
+  - It costs 1 support point and 500 money, and needs no airport.
+  - Seven drones (a setting, 3–8) launch behind the commander and fly in overhead, so they hit the commander's side of the target first.
+  - Each drone takes its own enemy in a 300 m circle: guns and machine gunners first, then infantry. Anti-tank drones come along when there are vehicles or boats, and go for armour first.
+  - When nothing is left to hit, they circle for a minute and leave. One swarm at a time.
 
 ## Requirements
 
@@ -86,6 +91,8 @@ These are server settings: everyone in the game uses the server's values.
 | Enemy FPV strikes | **On** · Off | FPV strikes as an Occupant and Invader support, and in their counterattacks, attack waves, HQ attacks and punishments. Off: AU uses its normal supports | Straight away |
 | Earliest war level for FPV strikes | 1–10, **3** | The war level from which those strikes are available | Straight away |
 | Rivals FPV drone | **On** · Off | The Rivals' drone attack launches a real FPV when their faction has no drones of its own. Off: normal AU behaviour | Straight away |
+| FPV drone swarm (commander) | **On** · Off | Adds the FPV drone swarm to the commander's Supports menu (1 support point and 500 money, no airport needed). Off: the entry is gone | Straight away (reopen the menu) |
+| FPV swarm size | 3–8, **7** | How many drones one swarm sends | For the next swarm called |
 | Low approach chance | 0–100%, **33%** | How often a fiber-optic (KVN) drone comes in low, skimming the ground and hopping obstacles, instead of attacking from above. Only for attacks begun 300 m or more away on soldiers on foot or parked vehicles. 0% turns it off | For the next attacks |
 | Debug logging | **Off** · On | Extra `[A3UE_FPV]` lines in the server's RPT log for troubleshooting | Straight away |
 

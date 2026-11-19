@@ -82,6 +82,9 @@ GLOBALS = [
     "A3A_taskCount", "A3A_vehicleResourceCosts", "A3A_balancePlayerScale", "A3A_balanceVehicleCost",
     "A3A_saveTarget", "A3A_faction_occ", "A3A_faction_inv", "A3A_faction_riv", "A3A_faction_civ",
     "vehiclesRivalsUavs", "uavsAttack", "uavsPortable", "minefieldAPERS", "attributeLowAir", "unitUnarmed",
+    # 1.0.9 friendly swarm (SW-2): the commander menu's support state, cost and markers.
+    "supportPoints", "supportCooldown", "isSupportMarkerPlacingLocked", "supportMarkerOrigin",
+    "supportMarkerDestination", "supportType", "resourcesFIA", "A3A_faction_reb",
 ]
 SITE_EVENT = "locationSpawned"
 

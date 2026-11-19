@@ -2,7 +2,7 @@
   "schema": 1,
   "versions": {
     "12.0.3": {
-      "recorded": "2026-11-10",
+      "recorded": "2026-11-19",
       "files": {
         "A3A/addons/core/CfgFunctions.hpp": "37712d01ddbfb5e66f452a163f9143aeee9a413df9355453c807ef24df289753",
         "A3A/addons/core/Includes/cba_events.hpp": "a9f17d762f9ef55de0bfc97e7d060bdf20ff7c157bcc921e52d3aad0677277bd",
@@ -12,6 +12,7 @@
         "A3A/addons/core/functions/AI/fn_callForSupport.sqf": "aed237fa357746fb3b37213484c3dc88465031aa16cc7b0bdb4fce4e9756a41e",
         "A3A/addons/core/functions/AI/fn_canFight.sqf": "b07e136e2c9cea7134525548cf91f3af1318fd34f2ca12eaa834d40d0bcd2048",
         "A3A/addons/core/functions/AI/fn_enemyReturnToBase.sqf": "fcc83e764a702e3d71c4e315b5f433a75e7161670bf40bd2631155f7aa04314e",
+        "A3A/addons/core/functions/AI/fn_hasRadio.sqf": "4fb5da4e5cdc6678b507211990d1f92cf394b6a1c28f690cc0ee5c675f2dd7b2",
         "A3A/addons/core/functions/Base/fn_addAggression.sqf": "649d807ee0fc0b21f58d19fb10ab1ceea8579db4de03a2a51ef68fe3fb9fa839",
         "A3A/addons/core/functions/Base/fn_addEnemyResources.sqf": "a099f06b1e9cf5507e9f6845a4e26b199086b3651636ad2f2e816f00a490acbe",
         "A3A/addons/core/functions/Base/fn_citySupportChange.sqf": "3fecac444e88935b600531f7dba260b333c482e2a136d2e23e676cd1da03749a",
@@ -20,8 +21,10 @@
         "A3A/addons/core/functions/Base/fn_localizar.sqf": "3b57ec4705133fa0d7fa529afc4fd8377be741a690a45263d722a409fc695a95",
         "A3A/addons/core/functions/Base/fn_markerChange.sqf": "ad2ff3c68e39500df9c38818a0c75b6d4894786dcb1d3cb8eaadf0155a987c74",
         "A3A/addons/core/functions/Base/fn_mrkUpdate.sqf": "781fbe8cc0804f4840ad8e21c681f20edbb975f0dd25163fbb588a1178bd36b0",
+        "A3A/addons/core/functions/Base/fn_resourcesFIA.sqf": "04f0c3d379aca1e46411e50b371a97d5077ba0d9d1ac032594a35e749233f66d",
         "A3A/addons/core/functions/Base/fn_scheduler.sqf": "6613ba128680bbadbad0ae57db1dbbfc83812902c69d78a6824669824381db7c",
         "A3A/addons/core/functions/Base/fn_sizeMarker.sqf": "91249a69f5df87b182f2159c862c8fd6e0ffced6028b4e4e93f57a92175f5372",
+        "A3A/addons/core/functions/Base/fn_statistics.sqf": "30becd07d66e9c8bb6479b6bcfbdaa2352027e4ac1a81ea5d0448a3f22d46da8",
         "A3A/addons/core/functions/Base/fn_zoneCheck.sqf": "f651cc3436b25e9ea5b62863c55ccf158f04694885242631894130e1a755b1af",
         "A3A/addons/core/functions/CREATE/fn_AIVEHinit.sqf": "50eb9069d8b35a1b09424313978da0c21e1a320deffe2fda566256fe1bfc76ed",
         "A3A/addons/core/functions/CREATE/fn_NATOinit.sqf": "4376e29ea717db6055d1cb07cd239bee006081870af97d690a4e816d9bdae449",
@@ -76,11 +79,18 @@
         "A3A/addons/scrt/Rivals/fn_rivals_findSuitableEncounterPosition.sqf": "df720b190993bc8d3936e19248cce2c2355789fda5c4f9f601a76e2a536c07af",
         "A3A/addons/scrt/Rivals/fn_rivals_getEventCooldown.sqf": "ab1bfc77996a3be889712eec4d13926571b9501bddbec40188234fbeba6b959a",
         "A3A/addons/scrt/Rivals/fn_rivals_selectAndExecuteEvent.sqf": "ec9857f035a7d47935b36b8ad920d08e82823fa3b877439860bec7d4ac381cd3",
+        "A3A/addons/scrt/UI/fn_ui_clearSupport.sqf": "e2be28a399d6209f3fbacb1e6dbfca7bc869d34b779661f2b1d22b71e9145ea8",
+        "A3A/addons/scrt/UI/fn_ui_launchSupport.sqf": "3a578528f66831bb15294f6ba516631f2ca15d8656d7cc8d7b5109610509e743",
+        "A3A/addons/scrt/UI/fn_ui_manageSupportTabEventHandler.sqf": "84bd71631d7b99164cc7f68e8ce6bcb6d38619be9c2724b8f399044af60eaa01",
+        "A3A/addons/scrt/UI/fn_ui_populateCommanderMenu.sqf": "449922e15319209b2674b2166e69e4454bd20ef51b3e6ecdfbf3ec2efa1b812e",
+        "A3A/addons/scrt/UI/fn_ui_setSupportCostText.sqf": "fdc41afcb0ebc1c03b9b5bb3e3f9d44bff50d099480800cd71f29dcb15c0f236",
+        "A3A/addons/scrt/UI/fn_ui_showMessage.sqf": "7fdd540bd236c67880822e841f8cca4db168f36eb08b837b18acbb2f2f409fc1",
+        "A3A/addons/scrt/UI/fn_ui_updateSupportMenu.sqf": "fa6e41d01912255716bff321a46f3a4662aa22cf97d3b67e4adb98e334527151",
         "A3A/addons/zeus/functions/init/fn_initModule.sqf": "ff8b323ab078fd9721a26be6de9a2e70feba36346a153c6b1750b9a5c1fb9032"
       }
     },
     "12.4.1": {
-      "recorded": "2026-11-10",
+      "recorded": "2026-11-19",
       "files": {
         "A3A/addons/core/CfgFunctions.hpp": "89f8add88cba22962519b56d66bb023813ef818d4245d214191285e215d3e188",
         "A3A/addons/core/Includes/cba_events.hpp": "61ca355fd1354203d4cbe1a985308a2e542d50b8fad8274efd9721e4632c00ad",
@@ -90,6 +100,7 @@
         "A3A/addons/core/functions/AI/fn_callForSupport.sqf": "4f024e179825acee28cb7b4fe958ea4fa1083153d2360e1f5075c527d3879050",
         "A3A/addons/core/functions/AI/fn_canFight.sqf": "b07e136e2c9cea7134525548cf91f3af1318fd34f2ca12eaa834d40d0bcd2048",
         "A3A/addons/core/functions/AI/fn_enemyReturnToBase.sqf": "fcc83e764a702e3d71c4e315b5f433a75e7161670bf40bd2631155f7aa04314e",
+        "A3A/addons/core/functions/AI/fn_hasRadio.sqf": "4fb5da4e5cdc6678b507211990d1f92cf394b6a1c28f690cc0ee5c675f2dd7b2",
         "A3A/addons/core/functions/Base/fn_addAggression.sqf": "649d807ee0fc0b21f58d19fb10ab1ceea8579db4de03a2a51ef68fe3fb9fa839",
         "A3A/addons/core/functions/Base/fn_addEnemyResources.sqf": "a099f06b1e9cf5507e9f6845a4e26b199086b3651636ad2f2e816f00a490acbe",
         "A3A/addons/core/functions/Base/fn_citySupportChange.sqf": "3fecac444e88935b600531f7dba260b333c482e2a136d2e23e676cd1da03749a",
@@ -98,8 +109,10 @@
         "A3A/addons/core/functions/Base/fn_localizar.sqf": "43468599e96f46a3d0eadfdc89330e8ef6c20fc4e274ac6ba1e04aea6c368f1a",
         "A3A/addons/core/functions/Base/fn_markerChange.sqf": "ac8243cad4f986fd322f391ce1bb548626a2f0ddfc713ade73321044b3c78bbf",
         "A3A/addons/core/functions/Base/fn_mrkUpdate.sqf": "258d2237ec53353a40f4ba6289bcb17d1407bd9ea7c70dfddf7f647fe9c95020",
+        "A3A/addons/core/functions/Base/fn_resourcesFIA.sqf": "593d013451609dbae102f84cb66a0bb2d5bddf0c44467300eb2602d113572a2a",
         "A3A/addons/core/functions/Base/fn_scheduler.sqf": "6613ba128680bbadbad0ae57db1dbbfc83812902c69d78a6824669824381db7c",
         "A3A/addons/core/functions/Base/fn_sizeMarker.sqf": "91249a69f5df87b182f2159c862c8fd6e0ffced6028b4e4e93f57a92175f5372",
+        "A3A/addons/core/functions/Base/fn_statistics.sqf": "ac51c7f68d58283eadbacd079f2afc5a7f543a83e7787ae87b957022e5975bb5",
         "A3A/addons/core/functions/Base/fn_zoneCheck.sqf": "f651cc3436b25e9ea5b62863c55ccf158f04694885242631894130e1a755b1af",
         "A3A/addons/core/functions/CREATE/fn_AIVEHinit.sqf": "9ab09d56ee4c0cbefdb9c6e86653ccbae1acb2f5425427f048585a7f531e604c",
         "A3A/addons/core/functions/CREATE/fn_NATOinit.sqf": "4a903c53ee625618608c2b576d34318cd5a7736413249ccd8280ce65df646cab",
@@ -154,11 +167,18 @@
         "A3A/addons/scrt/Rivals/fn_rivals_findSuitableEncounterPosition.sqf": "df720b190993bc8d3936e19248cce2c2355789fda5c4f9f601a76e2a536c07af",
         "A3A/addons/scrt/Rivals/fn_rivals_getEventCooldown.sqf": "ab1bfc77996a3be889712eec4d13926571b9501bddbec40188234fbeba6b959a",
         "A3A/addons/scrt/Rivals/fn_rivals_selectAndExecuteEvent.sqf": "ec9857f035a7d47935b36b8ad920d08e82823fa3b877439860bec7d4ac381cd3",
+        "A3A/addons/scrt/UI/fn_ui_clearSupport.sqf": "e2be28a399d6209f3fbacb1e6dbfca7bc869d34b779661f2b1d22b71e9145ea8",
+        "A3A/addons/scrt/UI/fn_ui_launchSupport.sqf": "3a578528f66831bb15294f6ba516631f2ca15d8656d7cc8d7b5109610509e743",
+        "A3A/addons/scrt/UI/fn_ui_manageSupportTabEventHandler.sqf": "84bd71631d7b99164cc7f68e8ce6bcb6d38619be9c2724b8f399044af60eaa01",
+        "A3A/addons/scrt/UI/fn_ui_populateCommanderMenu.sqf": "329f7ee6e1d1b995783d93be0d7c1d8f523ee08d22ce47b2ac72f0e0fb924d87",
+        "A3A/addons/scrt/UI/fn_ui_setSupportCostText.sqf": "0f1e419a1c8ed17e115b7d538d8eb70abac92acafe3ad6264f12ef941bc735f3",
+        "A3A/addons/scrt/UI/fn_ui_showMessage.sqf": "856c8be9713dcd9ac7ab89655f05cc11c7493970e8a94c8445c9c91e5a3a396e",
+        "A3A/addons/scrt/UI/fn_ui_updateSupportMenu.sqf": "b63c18f69d34aeede338d5c3f0be5ec390e70619b0038202a55b1f7644e180b6",
         "A3A/addons/zeus/functions/init/fn_initModule.sqf": "95444ddf302d989fba1ef8e984abc7b8d5647ce9e7b0ba72f411b93547825747"
       }
     },
     "12.4.2": {
-      "recorded": "2026-11-17",
+      "recorded": "2026-11-19",
       "files": {
         "A3A/addons/core/CfgFunctions.hpp": "89f8add88cba22962519b56d66bb023813ef818d4245d214191285e215d3e188",
         "A3A/addons/core/Includes/cba_events.hpp": "61ca355fd1354203d4cbe1a985308a2e542d50b8fad8274efd9721e4632c00ad",
@@ -168,6 +188,7 @@
         "A3A/addons/core/functions/AI/fn_callForSupport.sqf": "4f024e179825acee28cb7b4fe958ea4fa1083153d2360e1f5075c527d3879050",
         "A3A/addons/core/functions/AI/fn_canFight.sqf": "b07e136e2c9cea7134525548cf91f3af1318fd34f2ca12eaa834d40d0bcd2048",
         "A3A/addons/core/functions/AI/fn_enemyReturnToBase.sqf": "fcc83e764a702e3d71c4e315b5f433a75e7161670bf40bd2631155f7aa04314e",
+        "A3A/addons/core/functions/AI/fn_hasRadio.sqf": "4fb5da4e5cdc6678b507211990d1f92cf394b6a1c28f690cc0ee5c675f2dd7b2",
         "A3A/addons/core/functions/Base/fn_addAggression.sqf": "649d807ee0fc0b21f58d19fb10ab1ceea8579db4de03a2a51ef68fe3fb9fa839",
         "A3A/addons/core/functions/Base/fn_addEnemyResources.sqf": "a099f06b1e9cf5507e9f6845a4e26b199086b3651636ad2f2e816f00a490acbe",
         "A3A/addons/core/functions/Base/fn_citySupportChange.sqf": "3fecac444e88935b600531f7dba260b333c482e2a136d2e23e676cd1da03749a",
@@ -176,8 +197,10 @@
         "A3A/addons/core/functions/Base/fn_localizar.sqf": "43468599e96f46a3d0eadfdc89330e8ef6c20fc4e274ac6ba1e04aea6c368f1a",
         "A3A/addons/core/functions/Base/fn_markerChange.sqf": "ac8243cad4f986fd322f391ce1bb548626a2f0ddfc713ade73321044b3c78bbf",
         "A3A/addons/core/functions/Base/fn_mrkUpdate.sqf": "258d2237ec53353a40f4ba6289bcb17d1407bd9ea7c70dfddf7f647fe9c95020",
+        "A3A/addons/core/functions/Base/fn_resourcesFIA.sqf": "593d013451609dbae102f84cb66a0bb2d5bddf0c44467300eb2602d113572a2a",
         "A3A/addons/core/functions/Base/fn_scheduler.sqf": "6613ba128680bbadbad0ae57db1dbbfc83812902c69d78a6824669824381db7c",
         "A3A/addons/core/functions/Base/fn_sizeMarker.sqf": "91249a69f5df87b182f2159c862c8fd6e0ffced6028b4e4e93f57a92175f5372",
+        "A3A/addons/core/functions/Base/fn_statistics.sqf": "ac51c7f68d58283eadbacd079f2afc5a7f543a83e7787ae87b957022e5975bb5",
         "A3A/addons/core/functions/Base/fn_zoneCheck.sqf": "f651cc3436b25e9ea5b62863c55ccf158f04694885242631894130e1a755b1af",
         "A3A/addons/core/functions/CREATE/fn_AIVEHinit.sqf": "9ab09d56ee4c0cbefdb9c6e86653ccbae1acb2f5425427f048585a7f531e604c",
         "A3A/addons/core/functions/CREATE/fn_NATOinit.sqf": "4a903c53ee625618608c2b576d34318cd5a7736413249ccd8280ce65df646cab",
@@ -232,6 +255,13 @@
         "A3A/addons/scrt/Rivals/fn_rivals_findSuitableEncounterPosition.sqf": "df720b190993bc8d3936e19248cce2c2355789fda5c4f9f601a76e2a536c07af",
         "A3A/addons/scrt/Rivals/fn_rivals_getEventCooldown.sqf": "ab1bfc77996a3be889712eec4d13926571b9501bddbec40188234fbeba6b959a",
         "A3A/addons/scrt/Rivals/fn_rivals_selectAndExecuteEvent.sqf": "ec9857f035a7d47935b36b8ad920d08e82823fa3b877439860bec7d4ac381cd3",
+        "A3A/addons/scrt/UI/fn_ui_clearSupport.sqf": "e2be28a399d6209f3fbacb1e6dbfca7bc869d34b779661f2b1d22b71e9145ea8",
+        "A3A/addons/scrt/UI/fn_ui_launchSupport.sqf": "3a578528f66831bb15294f6ba516631f2ca15d8656d7cc8d7b5109610509e743",
+        "A3A/addons/scrt/UI/fn_ui_manageSupportTabEventHandler.sqf": "84bd71631d7b99164cc7f68e8ce6bcb6d38619be9c2724b8f399044af60eaa01",
+        "A3A/addons/scrt/UI/fn_ui_populateCommanderMenu.sqf": "329f7ee6e1d1b995783d93be0d7c1d8f523ee08d22ce47b2ac72f0e0fb924d87",
+        "A3A/addons/scrt/UI/fn_ui_setSupportCostText.sqf": "0f1e419a1c8ed17e115b7d538d8eb70abac92acafe3ad6264f12ef941bc735f3",
+        "A3A/addons/scrt/UI/fn_ui_showMessage.sqf": "856c8be9713dcd9ac7ab89655f05cc11c7493970e8a94c8445c9c91e5a3a396e",
+        "A3A/addons/scrt/UI/fn_ui_updateSupportMenu.sqf": "b63c18f69d34aeede338d5c3f0be5ec390e70619b0038202a55b1f7644e180b6",
         "A3A/addons/zeus/functions/init/fn_initModule.sqf": "95444ddf302d989fba1ef8e984abc7b8d5647ce9e7b0ba72f411b93547825747"
       }
     }

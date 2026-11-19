@@ -1,4 +1,4 @@
-"""User settings (1.0.7, 1.0.8): CBA Addon Options registration, validated reads and their effects.
+"""User settings (1.0.7, 1.0.8, 1.0.9): CBA Addon Options registration, validated reads and their effects.
 
 Shipped SQF runs in SQF-VM with the F2C-L harness. CBA itself is stubbed: these tests cover
 what the mod registers and how it reads and applies the values, not CBA's menu, saving or
@@ -14,7 +14,7 @@ from test_f2cl_field_fixes import PRELUDE, adapt, run_vm
 
 SETTINGS = ['A3UE_FPV_siteFrequency', 'A3UE_FPV_sitePerSite', 'A3UE_FPV_siteStockRefillSeconds',
             'A3UE_FPV_supportEnabled', 'A3UE_FPV_supportMinWarTier', 'A3UE_FPV_rivalsEnabled', 'A3UE_FPV_debug',
-            'A3UE_FPV_lowRunWeight']
+            'A3UE_FPV_lowRunWeight', 'A3UE_FPV_swarmEnabled', 'A3UE_FPV_swarmSize']
 # 1.0.8: the low approach chance is read with the other low-run tunables, not by userSetting.
 READER = {'A3UE_FPV_lowRunWeight': 'lowRunSettings'}
 
@@ -47,6 +47,8 @@ private _s = {[_this] call A3UE_fnc_fpv_userSetting};
 [("supportMinWarTier" call _s) == 3,"war tier default"] call _assert;
 [("rivalsEnabled" call _s),"rivals default"] call _assert;
 [!("debug" call _s),"debug default"] call _assert;
+[("swarmEnabled" call _s),"swarm default on"] call _assert;
+[("swarmSize" call _s) == 7,"swarm size default (EJ: 7)"] call _assert;
 // Every valid value passes through.
 {missionNamespace setVariable ["A3UE_FPV_siteFrequency",_x]; [("siteFrequency" call _s) == _x,_x] call _assert;} forEach ["OFF","LESS","NORMAL","MORE","ALWAYS"];
 {missionNamespace setVariable ["A3UE_FPV_sitePerSite",_x]; [("sitePerSite" call _s) == _x,_x] call _assert;} forEach ["FEWER","NORMAL","MORE"];
@@ -64,6 +66,11 @@ missionNamespace setVariable ["A3UE_FPV_siteStockRefillSeconds","900"]; [("siteR
 missionNamespace setVariable ["A3UE_FPV_supportEnabled",1]; [("supportEnabled" call _s),"non-Boolean"] call _assert;
 {missionNamespace setVariable ["A3UE_FPV_supportMinWarTier",_x # 0]; [("supportMinWarTier" call _s) == (_x # 1),str _x] call _assert;}
  forEach [[0,1],[-5,1],[11,10],[2.6,3],[7,7],["5",3]];
+// 1.0.9: the swarm switch and size (3-8).
+missionNamespace setVariable ["A3UE_FPV_swarmEnabled",false]; [!("swarmEnabled" call _s),"swarm off"] call _assert;
+missionNamespace setVariable ["A3UE_FPV_swarmEnabled","no"]; [("swarmEnabled" call _s),"swarm non-Boolean"] call _assert;
+{missionNamespace setVariable ["A3UE_FPV_swarmSize",_x # 0]; [("swarmSize" call _s) == (_x # 1),str _x] call _assert;}
+ forEach [[3,3],[8,8],[5.4,5],[1,3],[12,8],["6",7]];
 [isNil {["unknown"] call A3UE_fnc_fpv_userSetting},"unknown name"] call _assert;
 ''')
 
@@ -164,13 +171,13 @@ tierWar = "x"; missionNamespace setVariable ["A3UE_FPV_supportEnabled",true]; mi
 [(call _g) # 0,"bad tierWar treated as 1"] call _assert;
 ''')
 
-    def test_registration_declares_eight_global_settings(self):
+    def test_registration_declares_ten_global_settings(self):
         out = self.vm(['registerSettings'], r'''
 [!(call A3UE_fnc_fpv_registerSettings),"no CBA: nothing registered, no error"] call _assert;
 TEST_settings = [];
 CBA_fnc_addSetting = {TEST_settings pushBack _this; true};
 [call A3UE_fnc_fpv_registerSettings,"registered"] call _assert;
-[count TEST_settings == 8,format ["count %1",count TEST_settings]] call _assert;
+[count TEST_settings == 10,format ["count %1",count TEST_settings]] call _assert;
 {
   _x params ["_name","_type","_title","_category","_valueInfo","_global","_script"];
   [_global isEqualTo 1,_name + " not global"] call _assert;
@@ -197,6 +204,11 @@ private _default = {
 [((_byName get "A3UE_FPV_lowRunWeight") # 4) isEqualTo [0,1,1 / 3,0,true],"low approach slider 0-100%"] call _assert;
 [((_byName get "A3UE_FPV_lowRunWeight") # 3) # 1 == "STR_A3UE_FPV_SET_SUB_ATTACKS","low approach under Drone attacks"] call _assert;
 [((_byName get "A3UE_FPV_supportMinWarTier") # 4) isEqualTo [1,10,3,0],"war tier slider 1-10"] call _assert;
+// 1.0.9: the friendly swarm in the commander's menu, on by default; its size 3-8, default 7 (EJ).
+[(["A3UE_FPV_swarmEnabled"] call _default),"swarm default on"] call _assert;
+[((_byName get "A3UE_FPV_swarmSize") # 4) isEqualTo [3,8,7,0],"swarm size slider 3-8, 7"] call _assert;
+// EJ after session SW2: in their own "Friendly supports" section, not under the enemy supports.
+{[((_byName get _x) # 3) # 1 == "STR_A3UE_FPV_SET_SUB_FRIENDLY",_x + " under Friendly supports"] call _assert;} forEach ["A3UE_FPV_swarmEnabled","A3UE_FPV_swarmSize"];
 [(((_byName get "A3UE_FPV_siteFrequency") # 4) # 0) isEqualTo ["OFF","LESS","NORMAL","MORE","ALWAYS"],"frequency values"] call _assert;
 [(((_byName get "A3UE_FPV_siteStockRefillSeconds") # 4) # 0) isEqualTo [0,900,1800,3600],"refill values"] call _assert;
 // The server logs a change (CBA calls the script with the new value).
@@ -222,8 +234,9 @@ class UserSettingsContracts(unittest.TestCase):
         block = config.split('class Extended_PreInit_EventHandlers {', 1)[1].split('\n};', 1)[0]
         self.assertIn("call compileScript ['\\fpv_ai_drones\\functions\\fpv\\fn_fpv_registerSettings.sqf']", block)
         self.assertNotIn('\x0c', config)
-        # No new hard dependency: AU already loads CBA; the patch keeps its two requirements.
-        self.assertIn('requiredAddons[] = {"A3A_core", "A3_Weapons_F_Tank"};', config)
+        # No new hard dependency: AU already loads CBA. 1.0.9: AU's own scrt addon (the commander menu
+        # the swarm wrappers extend) is required too, so they load after AU's.
+        self.assertIn('requiredAddons[] = {"A3A_core", "A3A_scrt", "A3_Weapons_F_Tank"};', config)
 
     def test_every_setting_has_text(self):
         reg = self.src('registerSettings')
@@ -256,6 +269,12 @@ class UserSettingsContracts(unittest.TestCase):
         waved = (FPV / 'au_overrides' / 'fn_wavedAttack.sqf').read_text()
         line = next(l for l in waved.splitlines() if '_possibles append ["FPV"' in l or '"FPV" in _airSupports) &&' in l)
         self.assertIn('call A3UE_fnc_fpv_supportAllowed', line)
+        # 1.0.9: the swarm size and switch.
+        self.assertIn('["size", ["swarmSize"] call A3UE_fnc_fpv_userSetting]', self.code(self.src('swarmSettings')))
+        self.assertNotIn('"A3UE_FPV_swarmSize"', self.code(self.src('swarmSettings')))
+        self.assertIn('["swarmEnabled"] call A3UE_fnc_fpv_userSetting', self.code(self.src('swarmCall')))
+        menu = (FPV / 'au_menu' / 'fn_ui_updateSupportMenu.sqf').read_text()
+        self.assertIn('["swarmEnabled"] call A3UE_fnc_fpv_userSetting', self.code(menu))
         for name in ['userSetting', 'supportAllowed', 'registerSettings']:
             self.assertNotRegex(self.code(self.src(name)),
                                 r'\b(spawn|sleep|execVM|waitUntil|addMissionEventHandler|remoteExec\w*|publicVariable|setVariable)\b', name)

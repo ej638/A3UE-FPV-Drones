@@ -15,7 +15,10 @@ from f2_commitment_vm import VM, FPV, ROOT, script, adapt_helper
 SWARM = ['swarmSettings', 'swarmScan', 'swarmAssign', 'swarmSetTask', 'swarmDrop', 'swarmControl',
          'swarmTick', 'swarmDive', 'swarmPass', 'swarmRequest', 'swarmClear', 'swarmFly', 'swarmPose', 'swarmSafe',
          'swarmBrain']
-ALL = SWARM + ['swarmNotify', 'swarmLock']
+ALL = SWARM + ['swarmNotify', 'swarmLock', 'swarmCall', 'swarmCallReply', 'swarmMenuMark']
+# SW-2: the commander-menu wrappers (AU's SCRT_fnc_ui_* names, files in au_menu/).
+MENU = ['ui_updateSupportMenu', 'ui_setSupportCostText', 'ui_manageSupportTabEventHandler', 'ui_launchSupport',
+        'ui_clearSupport']
 CFG = ('class CfgVehicles {class AllVehicles {};class Man: AllVehicles {}; class LandVehicle: AllVehicles {};'
        'class Air: AllVehicles {};class VMMan: Man {};class VMVehicle: LandVehicle {};class VMUAV: Air {};};')
 
@@ -101,6 +104,16 @@ def adapt(name, s):
         s, n = re.subn(r'\[("STR_A3UE_FPV_SWARM_\w+"), (\[[^\]]*\])\] remoteExecCall \["A3UE_fnc_fpv_swarmNotify", _record get "side"\];',
                        r'FPV_notes pushBack [\1, \2];', s)
         assert n == 2, n
+    if name in ('swarmRequest', 'swarmCall'):
+        # SW-2: the menu call's pass for swarmRequest (the VM has no localNamespace).
+        s = s.replace('localNamespace', 'missionNamespace')
+    if name == 'swarmCall':
+        s = must(s, 'if (!isServer ||', 'if (!true ||', name)
+        s = must(s, '!isPlayer _requester', '!(_requester getVariable ["isPlayer", false])', name)
+        s = must(s, '[_ok, _why, _token] remoteExecCall ["A3UE_fnc_fpv_swarmCallReply", _sender];',
+                 'FPV_replies pushBack [_ok, _why, _token, _sender];', name)
+        s = must(s, 'publicVariable "supportPoints";', 'FPV_published pushBack "supportPoints";', name)
+        s = must(s, '[0, -_money] spawn A3A_fnc_resourcesFIA;', 'FPV_money pushBack (-_money);', name)
     if name == 'swarmRequest':
         s = must(s, 'if (!isServer ||', 'if (!true ||', name)
         s = must(s, 'worldSize', '10000', name)
@@ -174,7 +187,8 @@ private _fly={params ["_d","_state",["_dt",0.02]];FPV_time=FPV_time+_dt;FPV_fram
 
 
 def run(body, timeout=180):
-    extra = ''.join(load(n) for n in SWARM) + STUBS
+    # SW-2: the swarm size is a CBA setting read through userSetting.
+    extra = ''.join(load(n) for n in SWARM + ['swarmCall', 'userSetting']) + STUBS
     text = script(body, extra)
     with tempfile.TemporaryDirectory(prefix='fpv-swarm-') as d:
         p = Path(d) / 'test.sqf'
@@ -990,6 +1004,57 @@ missionNamespace setVariable ["A3UE_FPV_catalog",createHashMapFromArray [["kvn",
         self.assertRegex(out, r'launchM=600 bearing=270 from=FACING callerM=28 ')
         self.assertRegex(out, r'launchM=750 bearing=0 from=HOME callerM=-1 ')
 
+    def test_menu_call_checks_the_commander_and_charges_once(self):
+        # SW-2 (EJ, 17 November: commander only, 1 support point + 500, no airport; design §4.4: the
+        # commander's machine only asks, the server checks and charges).
+        out = self.sqf(r'''
+missionNamespace setVariable ["A3UE_FPV_catalog",createHashMapFromArray [["armafpv",createHashMapFromArray [["classesBySide",
+ createHashMapFromArray [["independent",createHashMapFromArray [["AT",["I_Crocus_AT"]],["AP",["I_Crocus_AP"]]]]]]]]]];
+missionNamespace setVariable ["A3UE_FPV_swarmActive",""];
+FPV_markers=createHashMapFromArray [["Synd_HQ",[1000,3000,0]]];
+FPV_replies=[];FPV_published=[];FPV_money=[];
+server="VMVehicle" createVehicle [0,0,0];server setVariable ["resourcesFIA",1000];
+supportPoints=2;supportCooldown=false;A3A_fnc_hasRadio={true};
+private _boss=["VMMan","boss"] call _make;_boss setVariable ["isPlayer",true];_boss setVariable ["owner",3];
+_boss setVariable ["position",[1000,700,0]];theBoss=_boss;
+private _other=["VMMan","other"] call _make;_other setVariable ["isPlayer",true];_other setVariable ["owner",4];
+FPV_remote=true;
+private _call={params ["_who","_token","_from"];FPV_sender=_from;FPV_replies=[];
+ [[1000,1000,0],_who,_token] call A3UE_fnc_fpv_swarmCall;FPV_replies # 0};
+[([_other,1,4] call _call) isEqualTo [false,"NOT_COMMANDER",1,4],"another player"] call _assert;
+[([_boss,2,4] call _call) isEqualTo [false,"NOT_COMMANDER",2,4],"another machine naming the commander"] call _assert;
+_boss setVariable ["isPlayer",false];
+[([_boss,3,3] call _call) isEqualTo [false,"NOT_COMMANDER",3,3],"an AI commander"] call _assert;
+_boss setVariable ["isPlayer",true];
+supportCooldown=true;[([_boss,4,3] call _call) # 1 == "COOLDOWN","AU's cooldown"] call _assert;supportCooldown=false;
+supportPoints=0;[([_boss,5,3] call _call) # 1 == "NO_POINTS","no support point"] call _assert;supportPoints=2;
+server setVariable ["resourcesFIA",499];[([_boss,6,3] call _call) # 1 == "NO_MONEY","499 money"] call _assert;
+server setVariable ["resourcesFIA",1000];
+A3A_fnc_hasRadio={false};[([_boss,7,3] call _call) # 1 == "NO_RADIO","no radio"] call _assert;A3A_fnc_hasRadio={true};
+missionNamespace setVariable ["A3UE_FPV_swarmEnabled",false];
+[([_boss,8,3] call _call) # 1 == "DISABLED","switched off"] call _assert;
+missionNamespace setVariable ["A3UE_FPV_swarmEnabled",true];
+[supportPoints==2 && {FPV_money isEqualTo []} && {FPV_published isEqualTo []} && {FPV_brain isEqualTo []},"nothing charged or called on a refusal"] call _assert;
+// The call: the commander's own machine; charged once; launched behind him (300 m south: 600 m out).
+missionNamespace setVariable ["A3UE_FPV_swarmSize",5];missionNamespace setVariable ["A3UE_FPV_swarmSettingsCache",[]];
+private _r=[_boss,9,3] call _call;
+[_r isEqualTo [true,"swarm1",9,3],str _r] call _assert;
+[supportPoints==1 && {FPV_money isEqualTo [-500]} && {FPV_published isEqualTo ["supportPoints"]},"1 point and 500 money"] call _assert;
+[count (FPV_brain # 1)==5,"the size setting: "+str (FPV_brain # 1)] call _assert;
+private _rec=(missionNamespace getVariable "A3UE_FPV_swarms") get "swarm1";
+[((_rec get "spawn") vectorDistance [1000,400,0]) < 0.01,"over the commander's head: "+str (_rec get "spawn")] call _assert;
+// One at a time, and a refused call costs nothing.
+_r=[_boss,10,3] call _call;
+[_r isEqualTo [false,"SWARM_ACTIVE",10,3] && {supportPoints==1} && {FPV_money isEqualTo [-500]},"one swarm at a time: "+str _r] call _assert;
+// swarmRequest itself still refuses that machine: only swarmCall's checked call gets through.
+missionNamespace setVariable ["A3UE_FPV_swarmActive",""];
+[([[1000,1000,0],-1,_boss] call A3UE_fnc_fpv_swarmRequest) isEqualTo [false,"AUTHORITY"],"a client calling swarmRequest"] call _assert;
+[!(missionNamespace getVariable ["A3UE_FPV_swarmCallTrusted",false]),"the pass is closed again"] call _assert;
+''')
+        self.assertRegex(out, r'event=MENU_CALL ok=false why=NOT_COMMANDER sender=4 commander=3 points=2 money=1000')
+        self.assertRegex(out, r'event=MENU_CALL ok=true why=swarm1 sender=3 commander=3 points=1 money=1000')
+        self.assertRegex(out, r'event=CALLED center=\[1000,1000,0\] size=5 at=0 vehiclesSeen=0 armor=0 launchM=600 bearing=180 from=CALLER callerM=300 ')
+
     def test_loiter_and_leave_are_ai_and_a_wanderer_is_flown_back(self):
         out = self.sqf(r'''
 private _d=["d1",[1000,1100,70],"AP","LOITER"] call _swarmDrone;
@@ -1089,6 +1154,54 @@ diag_log format ["closeRun far=%1 s=%2",_far,FPV_time-_t0];
 [_far < 140,"never far from its target: "+str _far] call _assert;
 ''')
         self.assertRegex(out, r'(?m)event=DIVE drone=d1 target=m distM=\d+ aboveM=\d+ angle=(4\d|[5-8]\d) again=0 try=1 tapS=-1$')
+
+    def test_a_target_steeply_below_dives_whichever_way_the_drone_faces(self):
+        out = self.sqf(r'''
+// SW-2b (session SW2): the last-resort drone took a man at a ruin from 8 m off and 70 m up, then circled
+// him 6-12 m out at 12 m/s for 46 s (a point inside its turning circle never came within 30 degrees of
+// its heading) until the swarm left. Steeply below: the short push-over, whichever way it faces.
+private _d=["d1",[1008,1000,70],"AP","ATTACK"] call _swarmDrone;
+_d setVariable ["velocity",[0,12,0]];
+private _rec=[[_d]] call _newRecord;
+["m","VMMan",[1000,1000,0]] call _enemy;
+_d setVariable ["A3UE_FPV_targetNetId","m"];_d setVariable ["A3UE_FPV_swarmTaskAt",FPV_time];_d setVariable ["A3UE_FPV_swarmGoAt",FPV_time];
+_d setVariable ["A3UE_FPV_swarmTargetClass","MAN"];
+private _state=createHashMap;private _n=0;private _t0=FPV_time;
+while {(_d getVariable "A3UE_FPV_swarmTask")=="ATTACK" && {_n < 200}} do {[_d,_state,0.05] call _fly;_n=_n+1;};
+[(_d getVariable "A3UE_FPV_swarmTask")=="DIVE","dives: "+(_d getVariable "A3UE_FPV_swarmTask")] call _assert;
+[(FPV_time-_t0) < 0.2,"at once: "+str (FPV_time-_t0)] call _assert;
+_n=0;
+while {(_d getVariable "A3UE_FPV_swarmTask")=="DIVE" && {!(_d getVariable ["A3UE_FPV_detonating",false])} && {_n < 900}} do {[_d,_state] call _fly;_n=_n+1;};
+diag_log format ["overhead steps=%1 strikes=%2 pos=%3",_n,FPV_strikes,_d getVariable "position"];
+[count FPV_strikes==1,"and hits him: "+str FPV_strikes] call _assert;
+// Not steeply below: 50 degrees down and off to the side, it still turns to face him first.
+{deleteVehicle _x;} forEach FPV_objects;FPV_objects=[];FPV_strikes=[];
+_d=["d2",[1059,1000,70],"AP","ATTACK"] call _swarmDrone;
+_d setVariable ["velocity",[0,12,0]];
+_rec=[[_d]] call _newRecord;
+["m2","VMMan",[1000,1000,0]] call _enemy;
+_d setVariable ["A3UE_FPV_targetNetId","m2"];_d setVariable ["A3UE_FPV_swarmTaskAt",FPV_time];_d setVariable ["A3UE_FPV_swarmGoAt",FPV_time];
+_d setVariable ["A3UE_FPV_swarmTargetClass","MAN"];
+_state=createHashMap;
+[_d,_state,0.05] call _fly;
+[(_d getVariable "A3UE_FPV_swarmTask")=="ATTACK","50 degrees down, side on: turns first"] call _assert;
+// Nearly overhead but behind it (77 degrees down, flying away): turns round first, never a loop (SW-1g).
+{deleteVehicle _x;} forEach FPV_objects;FPV_objects=[];
+_d=["d3",[1015,1000,70],"AP","ATTACK"] call _swarmDrone;
+_d setVariable ["velocity",[12,0,0]];
+_rec=[[_d]] call _newRecord;
+["m3","VMMan",[1000,1000,0]] call _enemy;
+_d setVariable ["A3UE_FPV_targetNetId","m3"];_d setVariable ["A3UE_FPV_swarmTaskAt",FPV_time];_d setVariable ["A3UE_FPV_swarmGoAt",FPV_time];
+_d setVariable ["A3UE_FPV_swarmTargetClass","MAN"];
+_state=createHashMap;
+[_d,_state,0.05] call _fly;
+[(_d getVariable "A3UE_FPV_swarmTask")=="ATTACK","overhead but behind: turns first"] call _assert;
+// The settings.
+private _s=call _settings;
+[(_s get "overheadAngle")==65 && {(_s get "overheadFacing")==120},"SW-2b: 65 degrees down, within 120 of the heading"] call _assert;
+''')
+        self.assertRegex(out, r'event=DIVE drone=d1 target=m distM=8 aboveM=69 angle=8\d again=0 try=1 tapS=-1')
+        self.assertRegex(out, r'event=STRIKE drone=d1 role=AP target=m class=MAN reason=(DIRECT_CONTACT|PREDICTED_IMPACT)')
 
     def test_approach_from_launch_lanes_is_straight_and_spread(self):
         self.sqf(r'''
@@ -1345,7 +1458,19 @@ class SwarmContracts(unittest.TestCase):
 
     def test_authority_and_client_fences(self):
         fence = 'if (!isServer || {isRemoteExecutedJIP} || {isRemoteExecuted && {remoteExecutedOwner != 2}}) exitWith {'
-        self.assertIn(fence + '[false, "AUTHORITY"]};', code('swarmRequest'))
+        # SW-2: the commander's call, checked and charged by swarmCall, is the one remote caller let through.
+        self.assertIn('if (!isServer || {isRemoteExecutedJIP} || {isRemoteExecuted && {remoteExecutedOwner != 2}\n'
+                      '\t&& {!(localNamespace getVariable ["A3UE_FPV_swarmCallTrusted", false])}}) exitWith {[false, "AUTHORITY"]};',
+                      code('swarmRequest'))
+        call = code('swarmCall')
+        self.assertIn('if (!isServer || {isRemoteExecutedJIP}) exitWith {};', call)
+        self.assertLess(call.index('localNamespace setVariable ["A3UE_FPV_swarmCallTrusted", true];'),
+                        call.index('call A3UE_fnc_fpv_swarmRequest;'))
+        self.assertLess(call.index('call A3UE_fnc_fpv_swarmRequest;'),
+                        call.index('localNamespace setVariable ["A3UE_FPV_swarmCallTrusted", false];'))
+        self.assertNotIn('missionNamespace setVariable ["A3UE_FPV_swarmCallTrusted"', call)
+        self.assertNotRegex(call, r'\b(sleep|waitUntil|uiSleep)\b')
+        self.assertIn('remoteExecutedOwner != 2', code('swarmCallReply'))
         self.assertIn(fence + '};', code('swarmBrain'))
         for name in ['swarmNotify', 'swarmLock']:
             self.assertIn('remoteExecutedOwner != 2', code(name), name)
@@ -1397,8 +1522,50 @@ class SwarmContracts(unittest.TestCase):
 
     def test_strings_exist(self):
         table = (ROOT / 'addons/drones/stringtable.xml').read_text()
-        for key in ['LAUNCHED', 'ON_STATION', 'LEAVING', 'MARKER']:
-            self.assertIn(f'<Key ID="STR_A3UE_FPV_SWARM_{key}">', table)
+        keys = set(re.findall(r'"(STR_A3UE_FPV_SWARM_\w+)"', ''.join(code(n) for n in ALL)))
+        keys |= set(re.findall(r'"(STR_A3UE_FPV_SWARM_\w+)"', ''.join((FPV / 'au_menu' / f'fn_{w}.sqf').read_text() for w in MENU)))
+        self.assertGreaterEqual(len(keys), 11)
+        for key in sorted(keys | {f'STR_A3UE_FPV_SWARM_{k}' for k in ['LAUNCHED', 'ON_STATION', 'LEAVING', 'MARKER']}):
+            self.assertIn(f'<Key ID="{key}">', table, key)
+
+    def test_menu_wrappers_run_au_first_and_add_only_the_swarm(self):
+        # SW-2 (EJ, 17 November: "like an AU bombing run"; design §2): AU's Supports tab gets an "FPV drone
+        # swarm" entry. Each wrapper runs AU's own copy of the function it replaces; only the swarm's type
+        # gets our code, and the commander's machine only asks: the server checks and charges.
+        config = (ROOT / 'addons/drones/config.cpp').read_text()
+        self.assertIn('requiredAddons[] = {"A3A_core", "A3A_scrt", "A3_Weapons_F_Tank"};', config)
+        scrt = config.split('    class SCRT {', 1)[1]
+        stock = code('getStockAUFunction')
+        self.assertIn('format ["\\x\\A3A\\addons\\scrt\\UI\\fn_%1.sqf", _name]', stock)
+        for name in MENU:
+            path = FPV / 'au_menu' / f'fn_{name}.sqf'
+            text = path.read_text()
+            body = '\n'.join(line.split('//', 1)[0] for line in text.splitlines())
+            self.assertIn(f'file = "\\fpv_ai_drones\\functions\\fpv\\au_menu\\fn_{name}.sqf";', scrt, name)
+            self.assertEqual(len(re.findall(r'\bclass\s+' + name + r'\s*\{', config)), 1, name)
+            self.assertIn(f'case "{name}"', stock, name)
+            self.assertIn(f'(["{name}"] call A3UE_fnc_fpv_getStockAUFunction)', body, name)
+            # Named in the header, so au_compat_check fingerprints AU's copy (drift shows as REVIEW).
+            self.assertIn(f'SCRT_fnc_{name}', text, name)
+            self.assertNotRegex(body, r'\bsupportPoints\s*=|A3A_fnc_resourcesFIA', name)
+            # Session SW2: AU's menu functions return nothing; handing that on was an undefined-variable error.
+            self.assertNotIn('_result', body, name)
+        launch = '\n'.join(line.split('//', 1)[0] for line in (FPV / 'au_menu' / 'fn_ui_launchSupport.sqf').read_text().splitlines())
+        # Every other type: AU's copy and nothing else.
+        self.assertTrue(launch.lstrip().startswith('if (isNil "supportType" || {supportType isNotEqualTo "A3UE_FPV_SWARM"}) exitWith {\n'
+                                                   '\t_this call (["ui_launchSupport"] call A3UE_fnc_fpv_getStockAUFunction)\n};'))
+        self.assertIn('remoteExecCall ["A3UE_fnc_fpv_swarmCall", 2];', launch)
+        self.assertLess(launch.index('remoteExecCall ["A3UE_fnc_fpv_swarmCall", 2];'), launch.index('supportCooldown = true;'))
+        manage = (FPV / 'au_menu' / 'fn_ui_manageSupportTabEventHandler.sqf').read_text()
+        self.assertLess(manage.index('["A3UE_FPV_swarmMap", "onMapSingleClick"] call BIS_fnc_removeStackedEventHandler;'),
+                        manage.index('(["ui_manageSupportTabEventHandler"] call A3UE_fnc_fpv_getStockAUFunction)'))
+        self.assertIn('[_pos] spawn A3UE_fnc_fpv_swarmMenuMark;', manage)
+        self.assertIn('deleteMarkerLocal "A3UE_FPV_swarmCircle";', (FPV / 'au_menu' / 'fn_ui_clearSupport.sqf').read_text())
+        # One type id everywhere.
+        for text in [launch, manage, code('swarmMenuMark'), (FPV / 'au_menu' / 'fn_ui_updateSupportMenu.sqf').read_text(),
+                     (FPV / 'au_menu' / 'fn_ui_setSupportCostText.sqf').read_text()]:
+            self.assertIn('"A3UE_FPV_SWARM"', text)
+        self.assertIn('if (_key == "STR_A3UE_FPV_SWARM_ON_STATION") then {A3UE_FPV_swarmArrivedAt = time;};', code('swarmNotify'))
 
 
 if __name__ == '__main__':

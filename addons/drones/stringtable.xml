@@ -22,6 +22,9 @@
         <Key ID="STR_A3UE_FPV_SET_SUB_SUPPORTS">
             <English>Enemy supports</English>
         </Key>
+        <Key ID="STR_A3UE_FPV_SET_SUB_FRIENDLY">
+            <English>Friendly supports</English>
+        </Key>
         <Key ID="STR_A3UE_FPV_SET_SUB_ATTACKS">
             <English>Drone attacks</English>
         </Key>
@@ -117,6 +120,39 @@
         </Key>
         <Key ID="STR_A3UE_FPV_SWARM_MARKER">
             <English>FPV swarm</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SWARM">
+            <English>FPV drone swarm (commander)</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SWARM_TIP">
+            <English>Adds an FPV drone swarm to the commander's Supports menu. It costs 1 support point and 500 money, and needs no airport. The drones fly in over the commander, each takes its own enemy in a 300 m circle, and they leave after a minute with nothing left to hit. Applies straight away.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SWARMSIZE">
+            <English>FPV swarm size</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SET_SWARMSIZE_TIP">
+            <English>How many drones one FPV swarm sends (3-8). Applies to the next swarm called.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_MENU_TITLE">
+            <English>FPV drone swarm</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_MENU_TIP">
+            <English>Friendly FPV drones fly in over you and attack the enemies in a 300 m circle, each its own target; anti-tank drones come along for vehicles. Click the map once to set the centre.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_MENU_TARGET">
+            <English>FPV swarm target</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_REFUSED_ACTIVE">
+            <English>An FPV swarm is already in the air. Wait until it has left.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_REFUSED_NO_PACK">
+            <English>No FPV drone pack with drones for your side is loaded.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_REFUSED_DISABLED">
+            <English>The FPV drone swarm is switched off in the addon options.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_REFUSED_OTHER">
+            <English>The FPV swarm could not be called (%1).</English>
         </Key>
     </Package>
 </Project>

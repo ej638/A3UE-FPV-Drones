@@ -122,8 +122,16 @@ switch (_task) do {
 			private _velocity = velocity _uav;
 			private _heading = [_velocity # 0, _velocity # 1, 0];
 			private _toTarget = [(_aim # 0) - (_pos # 0), (_aim # 1) - (_pos # 1), 0];
-			private _facing = (vectorMagnitude _heading) < 3 || {(vectorMagnitude _toTarget) > 1
-				&& {((vectorNormalized _heading) vectorDotProduct (vectorNormalized _toTarget)) >= (cos (_settings get "diveFacing"))}};
+			// SW-2b (session SW2: the last-resort drone took a man at a ruin from 8 m off, 70 m up, and
+			// circled him 6-12 m out for 46 s until the swarm left; a point inside the turning circle is
+			// never ahead): nearly overhead ("overheadAngle" or more below) and not behind (within
+			// "overheadFacing" of the way it flies), the push-over is short, so it dives. Behind it, it
+			// still turns round first (never a loop). Straight below: dives.
+			private _facing = (vectorMagnitude _heading) < 3 || {(vectorMagnitude _toTarget) <= 1} || {
+				private _dot = (vectorNormalized _heading) vectorDotProduct (vectorNormalized _toTarget);
+				_dot >= (cos (_settings get "diveFacing"))
+					|| {_below >= (_settings get "overheadAngle") && {_dot >= (cos (_settings get "overheadFacing"))}}
+			};
 			// SW-1i: another drone of the swarm dived at this target less than "tapGap" s ago: hold the
 			// dive (and slow, so it does not overfly) until that hit has landed; the target gone, the
 			// drone takes another (EJ after SW1h). SW-1j: at a target within "tapRadius" of this one too,

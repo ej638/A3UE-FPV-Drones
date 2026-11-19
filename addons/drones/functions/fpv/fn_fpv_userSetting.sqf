@@ -10,6 +10,8 @@
 //   ["supportMinWarTier"] -> integer 1..10                                      (default 3)
 //   ["rivalsEnabled"]     -> Boolean                                            (default true)
 //   ["debug"]             -> Boolean                                            (default false)
+//   ["swarmEnabled"]      -> Boolean: the FPV drone swarm in the commander's menu (default true)
+//   ["swarmSize"]         -> integer 3..8 drones per swarm                     (default 7)
 // 1.0.8: "A3UE_FPV_lowRunWeight" (Low approach chance, 0..1, default 1/3) is read and validated
 // with the other low-run tunables in A3UE_fnc_fpv_lowRunSettings, not here.
 params [["_name", ""]];
@@ -43,5 +45,12 @@ switch (_name) do {
 	};
 	case "rivalsEnabled": {["A3UE_FPV_rivalsEnabled", true] call _flag};
 	case "debug": {["A3UE_FPV_debug", false] call _flag};
+	// 1.0.9 friendly swarm (EJ, 17 November: 7 drones, 3-8).
+	case "swarmEnabled": {["A3UE_FPV_swarmEnabled", true] call _flag};
+	case "swarmSize": {
+		private _value = missionNamespace getVariable ["A3UE_FPV_swarmSize", 7];
+		if (!(_value isEqualType 0) || {!finite _value}) then {_value = 7;};
+		((round _value) max 3) min 8
+	};
 	default {nil};
 }

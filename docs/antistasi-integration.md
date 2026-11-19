@@ -1,10 +1,10 @@
 # Antistasi integration
 
-How the mod plugs into Antistasi Ultimate (AU): site defence, enemy supports, scheduled attacks and Rivals. For the overall structure see the [architecture overview](architecture.md).
+How the mod plugs into Antistasi Ultimate (AU): site defence, enemy supports, scheduled attacks, Rivals and the rebels' FPV swarm. For the overall structure see the [architecture overview](architecture.md).
 
 ## How it connects
 
-The mod doesn't edit any AU file, and it doesn't need A3UExtender. It connects in four ways, all set up at mission start on the server:
+The mod doesn't edit any AU file, and it doesn't need A3UExtender. It connects in five ways:
 
 | Mechanism | Used for |
 |---|---|
@@ -12,6 +12,7 @@ The mod doesn't edit any AU file, and it doesn't need A3UExtender. It connects i
 | **A wrapper round AU's site scheduler** | Marking the site spawns this mod deployed drones for, so activation can be confirmed on the server (see [Headless clients](#headless-clients)) |
 | **Runtime patches to AU's support tables and Rivals selector** | Adding the FPV support and the Rivals FPV event |
 | **Six replaced AU functions** (`CfgFunctions` overrides) | Scheduled attacks and the intercepted-radio messages that need an FPV branch |
+| **Five wrapped commander-menu functions** (`CfgFunctions` overrides of AU's `SCRT_fnc_ui_*`) | The FPV drone swarm in the commander's Supports menu |
 
 **The six replaced functions** are copies of AU's own code with an FPV branch added:
 - `A3A_fnc_singleAttack`, `A3A_fnc_wavedAttack`, `A3A_fnc_attackHQ` and `A3A_fnc_invaderPunish`;
@@ -99,6 +100,19 @@ The mod adds an `FPV` support type to AU's Occupant and Invader support tables, 
 - **Refusals are logged.** Each refused FPV support call writes one RPT line naming why (war tier, no launch point, unsafe engagement, no visible target, ...).
 - **Radio intercepts.** When players intercept enemy radio traffic, FPV support calls show up with their own message and map marker.
 
+## The rebels' support: the FPV drone swarm
+
+The commander can call in a swarm of friendly FPV drones from AU's own **Supports** tab, next to the bomb runs and supply drops.
+
+- **The menu:** five of AU's commander-menu functions are wrapped (`SCRT_fnc_ui_updateSupportMenu`, `ui_setSupportCostText`, `ui_manageSupportTabEventHandler`, `ui_launchSupport` and `ui_clearSupport`).
+  - Each wrapper runs AU's own current copy first. Only the swarm's entry gets the mod's code, so every AU support type keeps running AU's code, even after AU updates.
+  - The entry shows its cost, one map click sets the centre of the 300 m circle, and Launch uses AU's own checks and messages (support cooldown, points, money, radio).
+- **Who decides:** the commander's machine only asks. The server checks again that the request comes from the current commander, that AU's cooldown is free and that points, money and a radio are there. Then it calls the swarm and charges it. AU itself charges its supports on the commander's machine.
+- **What it costs:** 1 support point and 500 money, taken only once the swarm is called. No airport is needed. Like AU's own supports, nothing is refunded.
+- **Cooldown:** AU's support cooldown holds until the swarm is on station (at most two minutes), as AU's planes hold it until they reach their target. Only one swarm can be up at a time.
+- **The swarm:** server-owned drones from the loaded packs, using the rebels' drone classes. They launch behind the commander and fly in overhead. Each takes its own enemy in the circle, and they leave after a minute with nothing left to hit. Players can't take them over with a UAV terminal.
+- **Settings:** **FPV drone swarm (commander)** switches the entry on or off; **FPV swarm size** sets 3–8 drones (7 by default).
+
 ## Scheduled attacks
 
 AU's own attack scripts get an FPV option through the replaced functions:
@@ -127,6 +141,7 @@ AU tracks what each side spends. The mod keeps that consistent:
 - **Support and attack drones** are prepaid through AU.
   - A drone that **strikes** is consumed: it is switched out of AU's refund path before the airframe and crew are retired, so the side doesn't get its money back.
   - A drone that **survives** (despawn or expiry) keeps AU's normal refund.
+- **The rebels' FPV swarm** is paid up front from AU's support points and the rebels' money, on the server, and never refunded.
 - **Exactly once.** Every drone is settled exactly once (stock, support state, AU accounting), even when a kill, a native detonation and a deletion race each other.
 
 ## When AU updates
@@ -136,4 +151,5 @@ AU tracks what each side spends. The mod keeps that consistent:
   - With no drone pack loaded, AU's own current version of each function runs.
   - With a pack loaded, the mod's copy runs. If AU changes one of them, the game uses the mod's older copy until this mod is updated.
   - That is why `compat/` pins their hashes and the drift check exists.
+- The five commander-menu wrappers always run AU's current copy of each function, so an AU change there reaches the game straight away. `tools/au_compat_check.py` fingerprints those AU files and asks for a review when one changes.
 - Tested AU versions: 12.0.3, 12.4.1 and 12.4.2.

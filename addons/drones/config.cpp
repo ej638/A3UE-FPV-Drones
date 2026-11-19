@@ -7,7 +7,7 @@ class CfgPatches {
         weapons[] = {};
         magazines[] = {};
         requiredVersion = 2.14;
-        requiredAddons[] = {"A3A_core", "A3_Weapons_F_Tank"};
+        requiredAddons[] = {"A3A_core", "A3A_scrt", "A3_Weapons_F_Tank"};
         A3A_compatibility[] = {12, 4};
     };
 };
@@ -236,6 +236,9 @@ class CfgFunctions {
             class fpv_swarmSafe {};
             class fpv_swarmNotify {};
             class fpv_swarmLock {};
+            class fpv_swarmCall {};
+            class fpv_swarmCallReply {};
+            class fpv_swarmMenuMark {};
         };
     };
 
@@ -275,6 +278,30 @@ class CfgFunctions {
 
             class showInterceptedSupportCall {
                 file = "\fpv_ai_drones\functions\fpv\au_overrides\fn_showInterceptedSupportCall.sqf";
+            };
+        };
+    };
+
+    class SCRT {
+        class UI {
+            class ui_updateSupportMenu {
+                file = "\fpv_ai_drones\functions\fpv\au_menu\fn_ui_updateSupportMenu.sqf";
+            };
+
+            class ui_setSupportCostText {
+                file = "\fpv_ai_drones\functions\fpv\au_menu\fn_ui_setSupportCostText.sqf";
+            };
+
+            class ui_manageSupportTabEventHandler {
+                file = "\fpv_ai_drones\functions\fpv\au_menu\fn_ui_manageSupportTabEventHandler.sqf";
+            };
+
+            class ui_launchSupport {
+                file = "\fpv_ai_drones\functions\fpv\au_menu\fn_ui_launchSupport.sqf";
+            };
+
+            class ui_clearSupport {
+                file = "\fpv_ai_drones\functions\fpv\au_menu\fn_ui_clearSupport.sqf";
             };
         };
     };

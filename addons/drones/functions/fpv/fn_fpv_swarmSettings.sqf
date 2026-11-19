@@ -1,6 +1,7 @@
 // 1.0.9 friendly FPV swarm (SW-1): validated settings in one hashmap, cached for 2 s because the
-// lean dive reads it every frame. The tunables are unsupported mission variables (read live on the
-// server); SW-2 gives the swarm size a CBA setting. The rest is the fixed shape of a swarm.
+// lean dive reads it every frame. The swarm size is a CBA setting (SW-2, read through userSetting);
+// the other tunables are unsupported mission variables (read live on the server). The rest is the
+// fixed shape of a swarm.
 // [] -> hashmap
 private _cache = missionNamespace getVariable ["A3UE_FPV_swarmSettingsCache", []];
 if (_cache isEqualType [] && {count _cache == 2} && {diag_tickTime < (_cache # 0)}) exitWith {_cache # 1};
@@ -14,8 +15,11 @@ private _settings = createHashMapFromArray [
 	// Drones per swarm (EJ after SW1: 7) and the most anti-tank drones in one (EJ: only with vehicles
 	// in the circle; 2, then 4 after SW1h: "we're seeing how strong the armor stands up to drones";
 	// all of them with armour in the circle, SW-1j).
-	["size", round (["A3UE_FPV_swarmSize", 7, 3, 8] call _number)],
+	["size", ["swarmSize"] call A3UE_fnc_fpv_userSetting],
 	["maxAT", round (["A3UE_FPV_swarmMaxAT", 4, 0, 8] call _number)],
+	// The commander's cost in AU's Supports menu (SW-2; EJ, 17 November: 1 support point + 500 money, no
+	// airport needed). Shown by the menu, charged by the server (swarmCall).
+	["costPoints", 1], ["costMoney", 500],
 	// The call circle (m). Drones only take enemies inside it and chase them 50 m beyond.
 	["radius", ["A3UE_FPV_swarmRadius", 300, 100, 600] call _number],
 	["margin", 50],
@@ -75,7 +79,11 @@ private _settings = createHashMapFromArray [
 	// SW-1i: dives at the same target start at least "tapGap" s apart, so the next drone sees what
 	// the last hit did (the target gone: it takes another; EJ after SW1h). SW-1j: also dives at targets
 	// within "tapRadius" m of each other (the old spacing).
-	["diveAngle", 40], ["diveFacing", 30], ["stagger", 0.6], ["tapGap", 3], ["tapRadius", 25], ["maxTries", 2], ["triesS", 600],
+	// SW-2b (session SW2): a target "overheadAngle" degrees or more below and within "overheadFacing" of
+	// the way the drone flies dives at once (from overhead, steering at a point inside its own turning
+	// circle, it circled for 46 s); one behind it is still turned round to first.
+	["diveAngle", 40], ["diveFacing", 30], ["overheadAngle", 65], ["overheadFacing", 120], ["stagger", 0.6], ["tapGap", 3],
+	["tapRadius", 25], ["maxTries", 2], ["triesS", 600],
 	// SW-1l (EJ after SW1k): men on the stairs of these towers (and their ruins) are never targets, within
 	// "stairM" m of the tower (Arma's patrol towers, about 7 m across; the Tanoa one named on its own).
 	["stairTowers", ["Cargo_Patrol_base_F", "Land_Cargo_Patrol_V4_F", "Land_Cargo_Patrol_V1_ruins_F",
