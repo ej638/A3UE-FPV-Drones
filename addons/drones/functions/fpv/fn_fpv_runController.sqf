@@ -545,7 +545,20 @@ private _running = alive _uav && {local _uav} &&
 	{(_uav getVariable ["A3UE_FPV_controllerGeneration", -1]) == _generation} &&
 	{_uav getVariable ["A3UE_FPV_controllerRunning", false]};
 private _tickSleep = 0.25;
-if (_running) then {
+// 1.0.9 friendly swarm: a swarm drone runs its own lean tick (fn_fpv_swarmTick). The pacer, the frame
+// director, the lifecycle identity and the stop path below are shared; the enemy tick is untouched.
+private _swarmTick = _running && {(_uav getVariable ["A3UE_FPV_swarmId", ""]) isNotEqualTo ""};
+if (_swarmTick) then {
+	private _swarmResult = [_uav, _state, _controllerIdentity, _generation] call A3UE_fnc_fpv_swarmTick;
+	_tickSleep = _swarmResult # 0;
+	private _hot = (_wing # 0) && {!isNil "A3UE_FPV_directorHandler"} && {_swarmResult # 1};
+	_state set ["hot", _hot];
+	if (_hot && {!(_state get "listed")}) then {
+		_state set ["listed", true];
+		A3UE_FPV_directorStates pushBack _state;
+	};
+};
+if (_running && {!_swarmTick}) then {
 	_qa = !isNil "A3UE_FPV_QA_sink" && {_uav getVariable ["A3UE_FPV_QA_capture", false]};
 	private _loopAt = if (_qa) then {diag_tickTime} else {0};
 	private _mode = _uav getVariable ["A3UE_FPV_mode", "IDLE"];

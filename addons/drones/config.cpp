@@ -219,6 +219,23 @@ class CfgFunctions {
             class fpv_rivalsSelectAndExecuteEvent {};
             class fpv_rivalsUavFlyby {};
             class fpv_rivalsEventExecute {};
+            class fpv_swarmSettings {};
+            class fpv_swarmRequest {};
+            class fpv_swarmBrain {};
+            class fpv_swarmPass {};
+            class fpv_swarmScan {};
+            class fpv_swarmAssign {};
+            class fpv_swarmSetTask {};
+            class fpv_swarmDrop {};
+            class fpv_swarmControl {};
+            class fpv_swarmTick {};
+            class fpv_swarmDive {};
+            class fpv_swarmClear {};
+            class fpv_swarmFly {};
+            class fpv_swarmPose {};
+            class fpv_swarmSafe {};
+            class fpv_swarmNotify {};
+            class fpv_swarmLock {};
         };
     };
 

@@ -793,7 +793,9 @@ class WingSource(unittest.TestCase):
         # The tick itself never suspends and no longer loops.
         self.assertNotRegex(re.sub(r'//[^\n]*', '', tick), r'\b(sleep|uiSleep|waitUntil|spawn|execVM|while)\b')
         self.assertIn('private _fpvTick = createHashMap;', tick)
-        self.assertIn('if (_running) then {', tick)
+        # 1.0.9: the friendly swarm's lean tick is a narrow branch in front of the enemy pass.
+        self.assertIn('if (_running && {!_swarmTick}) then {', tick)
+        self.assertIn('private _swarmTick = _running && {(_uav getVariable ["A3UE_FPV_swarmId", ""]) isNotEqualTo ""};', tick)
         self.assertTrue(tick.rstrip().endswith('[_running, _tickSleep]'))
         for local, key in [('_nextGuidanceTick', 'nextGuidance'), ('_nextTargetScanTick', 'nextScan'), ('_nextLinkEvalTick', 'nextLink'),
                            ('_nextStrikeRetryTick', 'nextStrikeRetry'), ('_nextTargetabilityCheckAt', 'nextTargetability'),
@@ -855,14 +857,22 @@ class WingSource(unittest.TestCase):
             'detonateCompat', 'getClassDescriptor', 'sendLifecycle', 'controllerSleep', 'profileValue',
             # EN-02 low run and any-contact fuse.
             'lowRunSettings', 'lowRunStage', 'lowRunTrack', 'lowRunCheck', 'lowRunAim', 'lowRunEnd', 'surfaceZ', 'contactFence',
-            'lowRunWaiter', 'lowRunLineAt'}
+            'lowRunWaiter', 'lowRunLineAt',
+            # 1.0.9 friendly swarm: its lean tick and what it calls.
+            'swarmTick', 'swarmDive', 'swarmSettings', 'swarmDrop', 'swarmSetTask', 'swarmControl', 'swarmClear', 'swarmFly', 'swarmPose', 'swarmSafe', 'cleanupDrone'}
         for name in sorted(names):
             s = re.sub(r'//[^\n]*', '', source(name))
+            if name == 'cleanupDrone':
+                # It hands the deletion to its own scheduled worker; the caller's slice never waits.
+                s = s.split('[_uav] spawn {', 1)[0]
             self.assertNotRegex(s, r'\b(sleep|uiSleep|waitUntil|execVM)\b', name)
-            if name not in ('controllerState',):
+            if name not in ('controllerState', 'cleanupDrone'):
                 self.assertNotRegex(s, r'\bspawn\b', name)
-        # Every A3UE helper the controller calls is in that list (so a new call cannot slip past it).
-        called = set(re.findall(r'A3UE_fnc_fpv_(\w+)', source('runController'))) - {'runController', 'lifecycleAccess'}
+        # Every A3UE helper the controller (and the swarm tick) calls is in that list (so a new call cannot slip past it).
+        called = set()
+        for caller in ('runController', 'swarmTick', 'swarmDive', 'swarmDrop', 'swarmControl'):
+            called |= set(re.findall(r'A3UE_fnc_fpv_(\w+)', source(caller)))
+        called -= {'runController', 'lifecycleAccess'}
         self.assertFalse(called - names, called - names)
 
     def test_selection_and_target_drop_hooks(self):

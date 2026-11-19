@@ -26,6 +26,7 @@
 //   vehicleInitMode    - "AIVEHINIT" (default) or "DIRECT_BOOTSTRAP"
 //   resourcePool       - AU resource pool for AIVEHINIT path; defaults to "defence"
 //   eventId            - transient event identity string (stamps rivalry metadata)
+//   uavVars            - [[name, value, public], ...] A3UE_FPV_ variables stamped before bootstrap (1.0.9 swarm)
 
 params [["_spec", createHashMap]];
 
@@ -167,6 +168,15 @@ if ("supportSafetyRadius" in _spec) then {
 	_uav setVariable ["A3UE_FPV_supportSafetyRadius", _spec get "supportSafetyRadius", true];
 	_uav setVariable ["A3UE_FPV_supportSide", _side, true];
 };
+
+// 1.0.9: caller variables (the friendly swarm's membership and task), stamped before any init path
+// can start a controller. A3UE_FPV_ names only; [name, value, public].
+{
+	_x params [["_name", ""], ["_value", nil], ["_public", false]];
+	if (_name isEqualType "" && {(_name select [0, 9]) isEqualTo "A3UE_FPV_"} && {!isNil "_value"}) then {
+		_uav setVariable [_name, _value, _public isEqualTo true];
+	};
+} forEach (_spec getOrDefault ["uavVars", []]);
 
 isNil {
 	// Custom IDs do not inherit object-key deletion; install cleanup before any enqueue.

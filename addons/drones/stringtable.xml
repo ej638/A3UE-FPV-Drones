@@ -106,5 +106,17 @@
         <Key ID="STR_A3UE_FPV_SET_OPT_60MIN">
             <English>Every 60 minutes</English>
         </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_LAUNCHED">
+            <English>FPV swarm launched: %1 drones inbound.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_ON_STATION">
+            <English>FPV swarm on station, engaging.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_LEAVING">
+            <English>FPV swarm leaving the area.</English>
+        </Key>
+        <Key ID="STR_A3UE_FPV_SWARM_MARKER">
+            <English>FPV swarm</English>
+        </Key>
     </Package>
 </Project>
