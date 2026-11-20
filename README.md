@@ -54,7 +54,7 @@ A3UExtender is **not** needed.
 
 ### Players
 
-1. Subscribe on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629). The drone packs are listed as Required Items; untick any you don't want in the launcher.
+1. Subscribe on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629). FPV Drone Crocus is listed as a Required Item, so it comes along. Ukraine FPV Drone and KVN are optional: subscribe to them as well if you want their drones.
 2. Load it with Antistasi Ultimate, CBA and your drone packs.
 3. Start or continue an Antistasi campaign. There is nothing to place in the editor and no menu to set up.
 

@@ -13,6 +13,7 @@ All notable changes to [A3UE] AI FPV Drones. Versions match the Steam Workshop i
   - After a minute with nothing left to hit, the swarm leaves. One swarm at a time; AU's support cooldown holds until the swarm is on station.
   - The server flies the swarm. Players can't take its drones over with a UAV terminal.
 - **New settings** in a new **Friendly supports** section (Addon Options → [A3UE] AI FPV Drones): **FPV drone swarm (commander)**, on by default, and **FPV swarm size**, 3–8, default 7.
+- **Workshop page.** The item is now called "[A3UE] AI FPV Drones - Sites and Supports". Its Required Items are Antistasi Ultimate, CBA and FPV Drone Crocus; Ukraine FPV Drone and KVN are optional. In multiplayer, everyone still needs the same drone packs as the host.
 
 ## 1.0.8
 
