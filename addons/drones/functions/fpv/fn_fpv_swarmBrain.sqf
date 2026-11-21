@@ -1,4 +1,5 @@
-// 1.0.9 friendly FPV swarm: the swarm's own scheduled script on the server (spawned by swarmRequest).
+// 1.0.9 friendly FPV swarm: the swarm's own scheduled script on the server (started by swarmRequest,
+// since 1.0.10 from a one-shot frame handler so it never inherits a client's remote-call context).
 // It launches the drones and runs one brain pass (swarmPass, in one unscheduled slice) every "scanS"
 // seconds until the swarm is done. One script per swarm, one swarm at a time.
 // SW-1g (EJ after SW1f: "fly in staggered, and spread out ... some trailing further behind"): a lead
@@ -7,7 +8,11 @@
 // once); a swarm that leaves before then never launches them.
 // [id, roles, families by role] -> nothing
 params [["_id", ""], ["_roles", []], ["_families", createHashMap]];
-if (!isServer || {isRemoteExecutedJIP} || {isRemoteExecuted && {remoteExecutedOwner != 2}}) exitWith {};
+if (!isServer || {isRemoteExecutedJIP} || {isRemoteExecuted && {remoteExecutedOwner != 2}}) exitWith {
+	// BL-28: never silent (1.0.9 refused every dedicated-server swarm here without a line).
+	diag_log format ["[A3UE_FPV] swarm id=%1 event=BRAIN_REFUSED server=%2 remote=%3 sender=%4",
+		(str _id) select [0, 40], isServer, isRemoteExecuted, remoteExecutedOwner];
+};
 private _record = (missionNamespace getVariable ["A3UE_FPV_swarms", createHashMap]) getOrDefault [_id, createHashMap];
 if (count _record == 0) exitWith {};
 private _settings = call A3UE_fnc_fpv_swarmSettings;

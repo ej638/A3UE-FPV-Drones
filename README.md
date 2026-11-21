@@ -4,7 +4,7 @@ FPV kamikaze drones for [Antistasi Ultimate](https://steamcommunity.com/sharedfi
 
 Enemy sites launch drones that fly out on their own, find a target and dive on it. You'll hear the buzz before you see them. Shoot them down, get under cover or keep moving.
 
-**Status:** public beta, version 1.0.9. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629).
+**Status:** public beta, version 1.0.10. Available on the [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3839025629).
 
 ## Features
 

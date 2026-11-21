@@ -127,7 +127,10 @@ def adapt(name, s):
         s, n = re.subn(r'createMarker \[_area, _center\];.*?setMarkerText \(localize "STR_A3UE_FPV_SWARM_MARKER"\);',
                        'private _label = format ["A3UE_FPV_%1_label", _id]; FPV_madeMarkers append [_area, _label];', s, flags=re.S)
         assert n == 1, n
-        s = must(s, '[_id, _roles, _families] spawn A3UE_fnc_fpv_swarmBrain;', 'FPV_brain = [_id, _roles, _families];', name)
+        # BL-28 (1.0.10): the brain starts from a one-shot frame handler (its route has its own contract test).
+        s = must(s, 'addMissionEventHandler ["EachFrame", {\n\tremoveMissionEventHandler ["EachFrame", _thisEventHandler];\n'
+                    '\t_thisArgs spawn A3UE_fnc_fpv_swarmBrain;\n}, [_id, _roles, _families]];',
+                 'FPV_brain = [_id, _roles, _families];', name)
     return adapt_helper(name, s)
 
 
@@ -1471,11 +1474,35 @@ class SwarmContracts(unittest.TestCase):
         self.assertNotIn('missionNamespace setVariable ["A3UE_FPV_swarmCallTrusted"', call)
         self.assertNotRegex(call, r'\b(sleep|waitUntil|uiSleep)\b')
         self.assertIn('remoteExecutedOwner != 2', code('swarmCallReply'))
-        self.assertIn(fence + '};', code('swarmBrain'))
+        # BL-28: the brain's refusal is logged, never silent.
+        brain = code('swarmBrain')
+        self.assertIn(fence + '\n', brain)
+        self.assertIn(fence + '\n\t// BL-28', source('swarmBrain'))
+        self.assertLess(brain.index(fence), brain.index('event=BRAIN_REFUSED'))
+        self.assertLess(brain.index('event=BRAIN_REFUSED'), brain.index('private _record ='))
         for name in ['swarmNotify', 'swarmLock']:
             self.assertIn('remoteExecutedOwner != 2', code(name), name)
         self.assertIn('[_uav] remoteExecCall ["A3UE_fnc_fpv_swarmLock", 0, _uav];', code('swarmBrain'))
         self.assertIn('player disableUAVConnectability [_uav, true];', code('swarmLock'))
+
+    def test_brain_starts_outside_the_callers_remote_context(self):
+        # BL-28 (1.0.10): the commander's call is a remote call into swarmCall -> swarmRequest, and a
+        # script spawned from it keeps that context, which the brain, spawnManagedDrone, bootstrapLocal
+        # and runController refuse (1.0.9 on a dedicated server: charged, no drones). The brain starts
+        # from a one-shot EachFrame handler that removes itself first, the QA dispatcher's route.
+        request = code('swarmRequest')
+        route = ('addMissionEventHandler ["EachFrame", {\n\tremoveMissionEventHandler ["EachFrame", _thisEventHandler];\n'
+                 '\t_thisArgs spawn A3UE_fnc_fpv_swarmBrain;\n}, [_id, _roles, _families]];')
+        self.assertIn(route, request)
+        self.assertEqual(request.count('A3UE_fnc_fpv_swarmBrain'), 1)
+        self.assertEqual(request.count('addMissionEventHandler'), 1)
+        # Started only once the swarm is claimed and its record stored, and before the success answer.
+        self.assertLess(request.index('missionNamespace setVariable ["A3UE_FPV_swarms", _swarms];'), request.index(route))
+        self.assertLess(request.index(route), request.index('[true, _id]'))
+        # Nothing else in the addon starts the brain.
+        for path in FPV.glob('fn_fpv_*.sqf'):
+            if path.name != 'fn_fpv_swarmRequest.sqf':
+                self.assertNotIn('A3UE_fnc_fpv_swarmBrain', path.read_text(), path.name)
 
     def test_strike_uses_the_managed_commit_and_fence(self):
         dive = code('swarmDive')

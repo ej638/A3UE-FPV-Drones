@@ -2,6 +2,10 @@
 
 All notable changes to [A3UE] AI FPV Drones. Versions match the Steam Workshop item.
 
+## 1.0.10
+
+- **Fixed: the drone swarm never came on a dedicated server.** When the commander was not also the host (a dedicated server, with or without a headless client), the swarm call took the support point and the money and showed the call area, but no drones launched, and every later call was refused until the mission restarted. Player-hosted games were not affected.
+
 ## 1.0.9
 
 - **Your own FPV drone swarm.** The rebel commander can call in a swarm of friendly FPV drones from AU's Supports menu, next to the bomb runs and supply drops.

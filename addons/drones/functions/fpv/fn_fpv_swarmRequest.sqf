@@ -133,5 +133,15 @@ _swarms set [_id, _record];
 missionNamespace setVariable ["A3UE_FPV_swarms", _swarms];
 diag_log format ["[A3UE_FPV] swarm id=%1 event=CALLED center=%2 size=%3 at=%4 vehiclesSeen=%5 armor=%6 launchM=%7 bearing=%8 from=%9 callerM=%10 families=%11",
 	_id, _center apply {round _x}, _size, _antiTank, _vehicles, _armor, round _launchDistance, round _bearing, _from, round _callerDistance, _families];
-[_id, _roles, _families] spawn A3UE_fnc_fpv_swarmBrain;
+// BL-28 (1.0.10): the commander's paid call arrives here inside his machine's remote call (swarmCall),
+// and a script spawned from it keeps that remote-call context (isRemoteExecuted, remoteExecutedOwner). On a dedicated server the brain,
+// spawnManagedDrone, bootstrapLocal and runController all saw the commander's machine as the sender
+// and refused it, so 1.0.9 charged the call and launched nothing (on a hosted game the commander is
+// the server, owner 2, and it passed). The brain starts from a one-shot frame handler instead: event
+// code runs in the server's own context (the QA dispatcher's route, engine-checked 12 October). One
+// frame later; the swarm is already claimed and its record made above.
+addMissionEventHandler ["EachFrame", {
+	removeMissionEventHandler ["EachFrame", _thisEventHandler];
+	_thisArgs spawn A3UE_fnc_fpv_swarmBrain;
+}, [_id, _roles, _families]];
 [true, _id]
